@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+
+        <record id="view_sii_regional_offices_form" model="ir.ui.view">
+            <field name="name">view.sii.regional.offices.form</field>
+            <field name="model">sii.regional.offices</field>
+            <field name="arch" type="xml">
+                <form string="SII Regional Offices">
+                    <group>
+                        <field name="name"/>
+                        <field name="state_ids"
+                               placeholder="Comunas"
+                               widget="many2many_tags"
+                               options="{'no_create': True}"/>
+                    </group>
+                </form>
+            </field>
+        </record>
+
+        <record id="view_sii_regional_offices_tree" model="ir.ui.view">
+            <field name="name">view.sii.regional.offices.tree</field>
+            <field name="model">sii.regional.offices</field>
+            <field name="arch" type="xml">
+                <tree string="SII Document Class">
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record model="ir.actions.act_window" id="act_sii_regional_offices">
+            <field name="name">SII Regional Offices</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">sii.regional.offices</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+        <menuitem name="SII Regional Offices" action="act_sii_regional_offices" id="menu_action_sii_regional_offices" parent="l10n_cl_partner_activities.menu_sii_config"/>
+
+    </data>
+</openerp>

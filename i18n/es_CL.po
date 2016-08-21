@@ -1,0 +1,77 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# * report
+#
+# Translators:
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo 9.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-07-14 23:26+0000\n"
+"PO-Revision-Date: 2016-07-14 23:19-0400\n"
+"Last-Translator: Daniel Santibáñez Polanco\n"
+"Language-Team: Spanish (Chile) (http://www.transifex.com/odoo/odoo-9/language/es_CL/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es_CL\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 1.8.7.1\n"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_invoice_form
+msgid "Electronic Invoice"
+msgstr "Facturación Electrónica"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_invoice_form
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_electronic_stock_picking_form
+msgid "Download XML"
+msgstr "Descargar XML de envío"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_invoice_form
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_electronic_stock_picking_form
+msgid "Send XML"
+msgstr "Enviar Documento al SII"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_invoice_form
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_electronic_stock_picking_form
+msgid "Ask for DTE"
+msgstr "Consultar estado Documento"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.view_electronic_stock_picking_form
+msgid "Electronic Document"
+msgstr "Guía de Despacho Electrónica"
+
+#. module: l10n_cl_dte
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_account_invoice_sii_barcode_img
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_stock_picking_sii_barcode_img
+msgid "SII Barcode Image"
+msgstr "Imagen Código de barras SII"
+
+#. module: l10n_cl_dte
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_account_invoice_sii_message
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_stock_picking_sii_message
+msgid "SII Message"
+msgstr "Mensajes del SII"
+
+#. module: l10n_cl_dte
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_account_invoice_sii_send_ident
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_stock_picking_sii_send_ident
+msgid "SII Send Identification"
+msgstr "Identificación de envío del SII"
+
+#. module: l10n_cl_dte
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_account_invoice_sii_xml_response
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_stock_picking_sii_xml_response
+msgid "SII XML Response"
+msgstr "XML de respuesta del SII"
+
+#. module: l10n_cl_dte
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_account_invoice_sii_xml_request
+#: model:ir.model.fields,field_description:l10n_cl_dte.field_stock_picking_sii_xml_request
+msgid "SII XML Request"
+msgstr "XML de envío al SII"

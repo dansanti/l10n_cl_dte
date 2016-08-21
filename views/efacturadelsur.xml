@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <PonerDTE xmlns="https://www.efacturadelsur.cl">
+      <usuario>{{ ws.user_name }}</usuario>
+      <contrasena>{{ ws.user_password }}</contrasena>
+      <xml>
+        <?xml version="1.0" encoding="ISO-8859-1"?>
+        <DTE xmlns="http://www.sii.cl/SiiDte" version="1.0">
+            <Documento ID="F{{ head.sii_document_number }}T{{ head.sii_document_class_id.0 }}">
+                <Encabezado>
+                    <IdDoc>
+                        <TipoDTE>{{ head.sii_document_class_id.0 }}</TipoDTE>
+                        <Folio>{{ head.sii_document_number }}</Folio>
+                        <FchEmis>{{ head.date_invoice }}</FchEmis>
+                        <FmaPago>{{  }}</FmaPago>
+                        <FchVenc>{{ head.date_due }}</FchVenc>
+                    </IdDoc>
+                    <Emisor>
+                    <RUTEmisor>{{ company.vat|format_vat }}</RUTEmisor>
+                    <RznSoc>{{ company.name|fixlen(50) }}</RznSoc>
+                    <GiroEmis>{{ company.invoice_turn }}</GiroEmis>
+                    <Telefono>{{ company.phone }}</Telefono>
+                    <CorreoEmisor>{{ partner.email }}</CorreoEmisor>
+                    {% for a in company_turns %}
+                    <Acteco>a.turn_n</Acteco>
+                    {% endfor %}
+                    <DirOrigen>{% if partner.street %}{{ partner.street|fixlen(48) }}{% else %} {% endif %}</DirOrigen>
+                    <CmnaOrigen>{% if partner.state_id.1 %}{{ partner.state_id.1|comuna|fixlen(16) }}{% else %} {% endif %}</CmnaOrigen>
+                    <CiudadOrigen>{% if partner.state_id.1 %}{{ partner.state_id.1|comuna|fixlen(16) }}{% else %} {% endif %}</CiudadOrigen>
+                    </Emisor>
+                    <Receptor>
+                    <RUTRecep>{{ partner.vat|format_vat }}</RUTRecep>
+                    <RznSocRecep>{{ partner.name|fixlen(50) }}</RznSocRecep>
+                    <GiroRecep>{{ partner.invoice_turn }}</GiroRecep>
+                    <DirRecep>{% if partner.street %}{{ partner.street|fixlen(48) }}{% else %} {% endif %}</DirRecep>
+                    <CmnaRecep>{% if partner.state_id.1 %}{{ partner.state_id.1|comuna|fixlen(16) }}{% else %} {% endif %}</CmnaRecep>
+                    <CiudadRecep>{% if partner.state_id.1 %}{{ partner.state_id.1|comuna|fixlen(16) }}{% else %} {% endif %}</CiudadRecep>
+                    </Receptor>
+                    <Totales>
+                    <MntNeto>{{ head.amount_untaxed }}</MntNeto>
+                    <TasaIVA>{{ head.percent_tax }}</TasaIVA>
+                    <IVA>{{ head.amount_tax }}</IVA>
+                    <MntTotal>{{ head.amount_total }}</MntTotal>
+                    </Totales>
+                </Encabezado>
+                {% for p in lines %}
+                <Detalle>
+                    <NroLinDet>{{ loop.index }}</NroLinDet>
+                    <NmbItem>{{ p.name }}</NmbItem>
+                    <QtyItem>{{ p.quantity }}</QtyItem>
+                    <PrcItem>{{ p.printed_price_net }}</PrcItem>
+                    <MontoItem>{{ p.price_subtotal }}</MontoItem>
+                </Detalle>
+                {% endfor %}
+                <!--<TED version="1.0">{{ head.ted }}</TED>-->
+                <!--<TmstFirma>{{ head.ted_date }}</TmstFirma>-->
+            </Documento>
+            <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+                <SignedInfo><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" /><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" /><Reference URI="#DOC7712"><Transforms><Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" /></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" /><DigestValue>m0VGQ/eo4tkBoRbhTeHJl9JfDUU=</DigestValue></Reference></SignedInfo>
+                <SignatureValue>
+                {{ head.signature }}
+                </SignatureValue>
+                <KeyInfo>
+                <KeyValue>
+                <RSAKeyValue>
+                <Modulus>{{ head.modulus }}</Modulus>
+                <Exponent>{{ head.exponent }}</Exponent>
+                </RSAKeyValue>
+                </KeyValue>
+                <X509Data>
+                <X509Certificate>
+                {{ head.certificate }}
+                </X509Certificate>
+                </X509Data>
+                </KeyInfo>
+            </Signature>
+        </DTE>
+      </xml>
+      <enviar>True</enviar>
+    </PonerDTE>
+  </soap12:Body>
+</soap12:Envelope>

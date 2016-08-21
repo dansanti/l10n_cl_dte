@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <record id="view_company_dte_email_form" model="ir.ui.view">
+            <field name="model">res.company</field>
+            <field name="name">view.company.dte.mail.form</field>
+            <field name="inherit_id" ref="base.view_company_form" />
+            <field name="arch" type="xml">
+                <field name="website" position="after">
+                    <group colspan="2">
+                        <field name="dte_email" widget="email"/>
+                        <field name="dte_service_provider"/>
+                        <field name="dte_resolution_number"
+                               attrs="{'invisible': [('dte_service_provider', 'not in', ['SII', 'SIIHOMO'])],
+                                       'required':  [('dte_service_provider', 'not in', ['SII', 'SIIHOMO'])]}"/>
+                        <field name="dte_resolution_date"
+                               attrs="{'invisible': [('dte_service_provider', 'not in', ['SII', 'SIIHOMO'])],
+                                       'required':  [('dte_service_provider', 'not in', ['SII', 'SIIHOMO'])]}"/>
+                        <field name="sii_regional_office_id"
+                                domain="['|',
+                                ('state_ids', '=', city_id),
+                                ('name', '=', 'Grandes Contribuyentes')]"
+                               attrs="{'invisible': [('dte_service_provider', 'not in', ['SII', 'SIIHOMO'])],
+                                       'required':  [('dte_service_provider', 'in', ['SII', 'SIIHOMO'])]}"/>
+                    </group>
+                </field>
+            </field>
+        </record>
+    </data>
+</openerp>
