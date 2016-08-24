@@ -75,3 +75,98 @@ msgstr "XML de respuesta del SII"
 #: model:ir.model.fields,field_description:l10n_cl_dte.field_stock_picking_sii_xml_request
 msgid "SII XML Request"
 msgstr "XML de envío al SII"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "<strong>Source:</strong>"
+msgstr "<strong>Origen:</strong>"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "<strong>Customer Code:</strong>"
+msgstr "<strong>Código del cliente:</strong>"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "<strong>Reference:</strong>"
+msgstr "<strong>Referencia:</strong>"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "PRO-FORMA"
+msgstr "Forma-PRO"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Draft Invoice"
+msgstr "Borrador de Factura"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Cancelled Invoice"
+msgstr "Factura Cancelada"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Refund"
+msgstr "Devolución"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Vendor Refund"
+msgstr "Devolución Proveedor"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Vendor Bill"
+msgstr "Factura Proveedor"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Description"
+msgstr "Descripción"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Quantity"
+msgstr "Cantidad"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Unit Price"
+msgstr "Precio Unitario"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Disc.(%)"
+msgstr "Desc.(%)"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Taxes"
+msgstr "Impuestos"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Price"
+msgstr "Precio"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Tax"
+msgstr "Impuesto"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Base"
+msgstr "Neto"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Amount"
+msgstr "Bruto"
+
+#. module: l10n_cl_dte
+#: model:ir.ui.view,arch_db:l10n_cl_dte.dte_external_layout_invoice
+msgid "Comment:"
+msgstr "Comentario:"
