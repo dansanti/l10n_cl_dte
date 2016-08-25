@@ -44,7 +44,7 @@ except:
     pass
 
 # from urllib3 import HTTPConnectionPool
-urllib3.disable_warnings()
+#urllib3.disable_warnings()
 pool = urllib3.PoolManager()
 #ca_certs = "/etc/ssl/certs/ca-certificates.crt"
 #pool = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=ca_certs)
@@ -498,9 +498,7 @@ version="1.0">
         #try:
         signature_d = self.get_digital_signature_pem(
             company_id)
-        _logger.info(signature_d)
         seed = self.get_seed(company_id)
-        _logger.info(_("Seed is:  {}").format(seed))
         template_string = self.create_template_seed(seed)
         seed_firmado = self.sign_seed(
             template_string, signature_d['priv_key'],
@@ -780,20 +778,19 @@ exponent. AND DIGEST""")
         if not inv.partner_id.vat:
             raise UserError(_("Fill Partner VAT"))
         result['TED']['DD']['RR'] = inv.format_vat(inv.partner_id.vat)
-        result['TED']['DD']['RSR'] = self._acortar_str(inv.partner_id.name,40)
+        if not no_product:
+            result['TED']['DD']['RSR'] = self._acortar_str(inv.partner_id.name,40)
         result['TED']['DD']['MNT'] = int(round(inv.amount_total))
         if no_product:
             result['TED']['DD']['MNT'] = 0
-
-        for line in inv.invoice_line_ids:
-            result['TED']['DD']['IT1'] = self._acortar_str(line.name,40)
-            if line.product_id.default_code:
-                result['TED']['DD']['IT1'] = self._acortar_str(line.name.replace('['+line.product_id.default_code+'] ',''),40)
-            break
+        if not no_product:
+            for line in inv.invoice_line_ids:
+                result['TED']['DD']['IT1'] = self._acortar_str(line.name,40)
+                if line.product_id.default_code:
+                    result['TED']['DD']['IT1'] = self._acortar_str(line.name.replace('['+line.product_id.default_code+'] ',''),40)
+                break
 
         resultcaf = self.get_caf_file(inv)
-        #_logger.info(resultcaf)
-
         result['TED']['DD']['CAF'] = resultcaf['AUTORIZACION']['CAF']
         #_logger.info result
         dte = result['TED']['DD']
@@ -848,6 +845,7 @@ exponent. AND DIGEST""")
         clases = {}
         company_id = False
         for inv in self.with_context(lang='es_CL'):
+            #raise UserError(inv.company_id)
             try:
                 signature_d = self.get_digital_signature(inv.company_id)
             except:
@@ -905,7 +903,7 @@ exponent. AND DIGEST""")
                 if not no_product:
                     lines['UnmdItem'] = line.uom_id.name[:4]
                 if not no_product:
-                    lines['PrcItem'] = int(round(line.price_unit, 4))
+                    lines['PrcItem'] = round(line.price_unit, 4)
                 if line.discount > 0:
                     lines['DescuentoPct'] = line.discount
                     lines['DescuentoMonto'] = int(round((((line.discount / 100) * line.price_unit)* qty)))
@@ -975,6 +973,11 @@ exponent. AND DIGEST""")
                     dte['Encabezado']['Totales']['MntNeto'] = 0
                     dte['Encabezado']['Totales']['TasaIVA'] = 0
                     dte['Encabezado']['Totales']['IVA'] = 0
+                if IVA and IVA.tax_id.sii_code in [15]:
+                    dte['Encabezado']['Totales']['ImptoReten'] = collections.OrderedDict()
+                    dte['Encabezado']['Totales']['ImptoReten']['TpoImp'] = IVA.tax_id.sii_code
+                    dte['Encabezado']['Totales']['ImptoReten']['TasaImp'] = round(IVA.tax_id.amount,2)
+                    dte['Encabezado']['Totales']['ImptoReten']['MontoImp'] = int(round(IVA.amount))
             monto_total = int(round(inv.amount_total, 0))
             if no_product:
                 monto_total = 0
@@ -998,7 +1001,7 @@ exponent. AND DIGEST""")
                 dr_lines.extend([{'DscRcgGlobal':dr_line}])
             lin_ref = 1
             ref_lines = []
-            if dte_service == 'SIIHOMO':
+            if dte_service == 'SIIHOMO' and isinstance(n_atencion, str):
                 ref_line = {}
                 ref_line = collections.OrderedDict()
                 ref_line['NroLinRef'] = lin_ref
@@ -1017,7 +1020,7 @@ exponent. AND DIGEST""")
                     if  ref.sii_referencia_TpoDocRef:
                         ref_line['TpoDocRef'] = ref.sii_referencia_TpoDocRef
                         ref_line['FolioRef'] = ref.origen
-                    ref_line['FchRef'] = datetime.strftime(datetime.now(), '%Y-%m-%d')
+                    ref_line['FchRef'] = ref.fecha_documento or datetime.strftime(datetime.now(), '%Y-%m-%d')
                     if ref.sii_referencia_CodRef not in ['','none', False]:
                         ref_line['CodRef'] = ref.sii_referencia_CodRef
                     ref_line['RazonRef'] = ref.motivo
@@ -1037,23 +1040,22 @@ exponent. AND DIGEST""")
             root = etree.XML( xml )
             xml_pret = etree.tostring(root, pretty_print=True).replace(
 '<Documento_ID>', doc_id).replace('</Documento_ID>', '</Documento>')
-            if dte_service in ['SII', 'SIIHOMO']:
-                envelope_efact = self.convert_encoding(xml_pret, 'ISO-8859-1')
-                envelope_efact = self.create_template_doc(envelope_efact)
-                                ## firma del documento
-                einvoice = self.sign_full_xml(
-                    envelope_efact, signature_d['priv_key'],
-                    self.split_cert(certp), doc_id_number)
-                #@TODO Mejarorar esto en lo posible
-                if not inv.sii_document_class_id.sii_code in clases:
-                    clases[inv.sii_document_class_id.sii_code] = {}
-                clases[inv.sii_document_class_id.sii_code].update({inv.id: einvoice})
-                partners.update({inv.partner_id.id: clases})
-                DTEs.update(partners)
-                if not company_id:
-                    company_id = inv.company_id
-                elif company_id.id != inv.company_id.id:
-                    raise UserError("Está combinando compañías")
+            envelope_efact = self.convert_encoding(xml_pret, 'ISO-8859-1')
+            envelope_efact = self.create_template_doc(envelope_efact)
+                            ## firma del documento
+            einvoice = self.sign_full_xml(
+                envelope_efact, signature_d['priv_key'],
+                self.split_cert(certp), doc_id_number)
+            #@TODO Mejarorar esto en lo posible
+            if not inv.sii_document_class_id.sii_code in clases:
+                clases[inv.sii_document_class_id.sii_code] = {}
+            clases[inv.sii_document_class_id.sii_code].update({inv.id: einvoice})
+            partners.update({inv.partner_id.id: clases})
+            DTEs.update(partners)
+            if not company_id:
+                company_id = inv.company_id
+            elif company_id.id != inv.company_id.id:
+                raise UserError("Está combinando compañías")
             company_id = inv.company_id
             #@TODO hacer autoreconciliación
             #if inv.sii_document_class_id.sii_code in [61, 56]:
