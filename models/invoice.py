@@ -1000,7 +1000,7 @@ exponent. AND DIGEST""")
                 dr_lines.extend([{'DscRcgGlobal':dr_line}])
             lin_ref = 1
             ref_lines = []
-            if dte_service == 'SIIHOMO' and isinstance(n_atencion, str):
+            if dte_service == 'SIIHOMO' and isinstance(n_atencion, unicode):
                 ref_line = {}
                 ref_line = collections.OrderedDict()
                 ref_line['NroLinRef'] = lin_ref
