@@ -785,9 +785,9 @@ exponent. AND DIGEST""")
             result['TED']['DD']['MNT'] = 0
         if not no_product:
             for line in inv.invoice_line_ids:
-                result['TED']['DD']['IT1'] = self._acortar_str(line.name,40)
+                result['TED']['DD']['IT1'] = self._acortar_str(line.product_id.name,40)
                 if line.product_id.default_code:
-                    result['TED']['DD']['IT1'] = self._acortar_str(line.name.replace('['+line.product_id.default_code+'] ',''),40)
+                    result['TED']['DD']['IT1'] = self._acortar_str(line.product_id.name.replace('['+line.product_id.default_code+'] ',''),40)
                 break
 
         resultcaf = self.get_caf_file(inv)
@@ -888,11 +888,10 @@ exponent. AND DIGEST""")
                     if t.amount == 0:
                         lines['IndExe'] = 1
                         MntExe += int(round(line.price_subtotal, 0))
-                lines['NmbItem'] = self._acortar_str(line.name,80)
-                #lines['NmbItem'] = self._acortar_str(line.product_id.name,80) #
-                #lines['DscItem'] = self._acortar_str(line.name, 0) #descripción más extenza
+                lines['NmbItem'] = self._acortar_str(line.product_id.name,80)
+                lines['DscItem'] = self._acortar_str(line.name, 1000) #descripción más extenza
                 if line.product_id.default_code:
-                    lines['NmbItem'] = self._acortar_str(line.name.replace('['+line.product_id.default_code+'] ',''),80)
+                    lines['NmbItem'] = self._acortar_str(line.product_id.name.replace('['+line.product_id.default_code+'] ',''),80)
                 qty = int(round(line.quantity, 4))
                 if not no_product:
                     lines['QtyItem'] = qty
