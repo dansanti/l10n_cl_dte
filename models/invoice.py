@@ -949,7 +949,7 @@ exponent. AND DIGEST""")
             dte['Encabezado']['Receptor']['CmnaRecep'] = inv.partner_id.city_id.name
             dte['Encabezado']['Receptor']['CiudadRecep'] = inv.partner_id.city
             dte['Encabezado']['Totales'] = collections.OrderedDict()
-            if inv.sii_document_class_id.sii_code == 34 or (inv.referencias and inv.referencias[0].sii_referencia_TpoDocRef == '34'):
+            if inv.sii_document_class_id.sii_code == 34 or (inv.referencias and inv.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):
                 MntExe = inv.amount_total
                 if 'global_discount' in inv and inv.global_discount:
                     MntExe = (MntExe * (1 - (inv.global_discount/100)))
@@ -995,7 +995,7 @@ exponent. AND DIGEST""")
                     disc_type = "$"
                 dr_line['TpoValor'] = disc_type
                 dr_line['ValorDR'] = round(inv.global_discount,2)
-                if inv.sii_document_class_id.sii_code in [34] and (inv.referencias and inv.referencias[0].sii_referencia_TpoDocRef == '34'):#solamente si es exento
+                if inv.sii_document_class_id.sii_code in [34] and (inv.referencias and inv.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):#solamente si es exento
                     dr_line['IndExeDR'] = 1
                 dr_lines.extend([{'DscRcgGlobal':dr_line}])
             lin_ref = 1
@@ -1017,7 +1017,7 @@ exponent. AND DIGEST""")
                     ref_line = collections.OrderedDict()
                     ref_line['NroLinRef'] = lin_ref
                     if  ref.sii_referencia_TpoDocRef:
-                        ref_line['TpoDocRef'] = ref.sii_referencia_TpoDocRef
+                        ref_line['TpoDocRef'] = ref.sii_referencia_TpoDocRef.sii_code
                         ref_line['FolioRef'] = ref.origen
                     ref_line['FchRef'] = ref.fecha_documento or datetime.strftime(datetime.now(), '%Y-%m-%d')
                     if ref.sii_referencia_CodRef not in ['','none', False]:

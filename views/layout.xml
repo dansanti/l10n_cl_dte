@@ -24,7 +24,7 @@
                               <span t-field="o.turn_issuer.name" style="color:black;"/><br />
                             </t>
                               <!-- domicilios -->
-                              <span t-field="o.company_id.partner_id.street"/>, <span t-field="o.company_id.partner_id.state_id.name"/>, <span t-field="o.company_id.partner_id.city"/><br />
+                              <span t-field="o.company_id.partner_id.street"/>, <span t-field="o.company_id.partner_id.city_id.name"/>, <span t-field="o.company_id.partner_id.city"/><br />
                               <!-- domicilios -->
                               <span> Teléfono: <span t-field="o.company_id.partner_id.phone"/></span><br/>
                               <span>E-Mail: <span t-field="o.company_id.partner_id.email"/></span><br/>
@@ -100,39 +100,39 @@
                     </div>
                     <span> Documento de Referencia</span>
                     <div class="row" style="border: 2px solid black; min-height:50px;" name="reference">
-                    	<table class="table table-condensed">
-                    		<thead>
-                    			<th>
-                    				<strong>Source:</strong>
-                    			</th>
-                    			<th>
-                    				<strong>Reference:</strong>
-                    			</th>
-                    			<th>
-                    				<strong>Motivo/observación:</strong>
-                    			</th>
+                      <table class="table table-condensed">
+                        <thead>
+                          <th>
+                            <strong>Source:</strong>
+                          </th>
+                          <th>
+                            <strong>Reference:</strong>
+                          </th>
+                          <th>
+                            <strong>Motivo/observación:</strong>
+                          </th>
                           <th>
                             <strong>Fecha del documento</strong>
                           </th>
-                    		</thead>
-                    		<tbody t-if="'referencias' in o and o.referencias">
-                    			<t  t-foreach="o.referencias" t-as="l">
-			                        <tr>
-			                        	<td  style="border-top:0px !important;padding:4px !important;">
-			                                <span t-if="l.origen" t-field="l.origen"/>
-			                            </td>
-				                        <td style="border-top:0px !important;padding:4px !important;">
-				                          	<span t-if="l.sii_referencia_TpoDocRef" t-field="l.sii_referencia_TpoDocRef"/>
-				                        </td>
-				                        <td name="reference" style="border-top:0px !important;padding:4px !important;">
-				                          	<span  t-if="l.motivo" t-field="l.motivo"/>
-				                        </td>
+                        </thead>
+                        <tbody t-if="'referencias' in o and o.referencias">
+                          <t  t-foreach="o.referencias" t-as="l">
+                              <tr>
+                                <td  style="border-top:0px !important;padding:4px !important;">
+                                      <span t-if="l.origen" t-field="l.origen"/>
+                                  </td>
+                                <td style="border-top:0px !important;padding:4px !important;">
+                                    <span t-if="l.sii_referencia_TpoDocRef" t-field="l.sii_referencia_TpoDocRef.name"/>
+                                </td>
+                                <td name="reference" style="border-top:0px !important;padding:4px !important;">
+                                    <span  t-if="l.motivo" t-field="l.motivo"/>
+                                </td>
                                 <td style="border-top:0px !important;padding:4px !important;">
                                   <span t-if="l.fecha_documento" t-field="l.fecha_documento" />
                                 </td>
-				                    </tr>
-		                    	</t>
-		                	</tbody>
+                            </tr>
+                          </t>
+                      </tbody>
                         </table>
                   </div>
                   <!-- Is there a discount on at least one line? -->
