@@ -746,7 +746,7 @@ exponent. AND DIGEST""")
         help="SII request result",
         default = '')
     canceled = fields.Boolean(string="Canceled?")
-
+    
     @api.multi
     def get_related_invoices_data(self):
         """
@@ -792,7 +792,6 @@ exponent. AND DIGEST""")
 
         resultcaf = self.get_caf_file(inv)
         result['TED']['DD']['CAF'] = resultcaf['AUTORIZACION']['CAF']
-        #_logger.info result
         dte = result['TED']['DD']
         ddxml = '<DD>'+dicttoxml.dicttoxml(
             dte, root=False, attr_type=False).replace(
@@ -841,11 +840,9 @@ exponent. AND DIGEST""")
         cant_doc_batch = 0
         DTEs = {}
         count = 0
-        partners = {}
         clases = {}
         company_id = False
         for inv in self.with_context(lang='es_CL'):
-            #raise UserError(inv.company_id)
             try:
                 signature_d = self.get_digital_signature(inv.company_id)
             except:
@@ -856,13 +853,10 @@ exponent. AND DIGEST""")
             signature.'''))
             certp = signature_d['cert'].replace(
                 BC, '').replace(EC, '').replace('\n', '')
-            # control de DTE
             if inv.sii_document_class_id.dte == False:
                 continue
-            # control de DTE
             cant_doc_batch = cant_doc_batch + 1
             dte_service = inv.company_id.dte_service_provider
-            # debe confeccionar el timbre
             ted1 = self.get_barcode(inv, dte_service)
             ted_dict = xmltodict.parse('<TED>' + ted1 + '</TED>')
             folio = ted_dict['TED']['TED']['DD']['F']
@@ -888,7 +882,7 @@ exponent. AND DIGEST""")
                     if t.amount == 0:
                         lines['IndExe'] = 1
                         MntExe += int(round(line.price_subtotal, 0))
-                lines['NmbItem'] = self._acortar_str(line.product_id.name,80)
+                lines['NmbItem'] = self._acortar_str(line.product_id.name,80) #
                 lines['DscItem'] = self._acortar_str(line.name, 1000) #descripción más extenza
                 if line.product_id.default_code:
                     lines['NmbItem'] = self._acortar_str(line.product_id.name.replace('['+line.product_id.default_code+'] ',''),80)
@@ -1047,10 +1041,9 @@ exponent. AND DIGEST""")
                 self.split_cert(certp), doc_id_number)
             #@TODO Mejarorar esto en lo posible
             if not inv.sii_document_class_id.sii_code in clases:
-                clases[inv.sii_document_class_id.sii_code] = {}
-            clases[inv.sii_document_class_id.sii_code].update({inv.id: einvoice})
-            partners.update({inv.partner_id.id: clases})
-            DTEs.update(partners)
+                clases[inv.sii_document_class_id.sii_code] = []
+            clases[inv.sii_document_class_id.sii_code].extend([{'id':inv.id, 'envio': einvoice}])
+            DTEs.update(clases)
             if not company_id:
                 company_id = inv.company_id
             elif company_id.id != inv.company_id.id:
@@ -1066,18 +1059,15 @@ exponent. AND DIGEST""")
         resol_data = self.get_resolution_data(company_id)
         signature_d = self.get_digital_signature(company_id)
         RUTEmisor = self.format_vat(company_id.vat)
-        for id_receptor,  receptor in DTEs.iteritems():
-            recep = self.env['res.partner'].browse(id_receptor)
-            RUTRecep = self.format_vat(recep.vat)
-            for id_class_doc, classes in receptor.iteritems():
-                NroDte = 0
-                for inv_id, documento in classes.iteritems():
-                    doc = self.env['account.invoice'].browse(inv_id)
-                    dtes.update({str(doc.sii_batch_number): documento})
-                    doc.sii_xml_request = documento
-                    NroDte += 1
-                    file_name += 'F' + str(int(doc.sii_document_number)) + 'T' + str(id_class_doc)
-                SubTotDTE += '<SubTotDTE>\n<TpoDTE>' + str(id_class_doc) + '</TpoDTE>\n<NroDTE>'+str(NroDte)+'</NroDTE>\n</SubTotDTE>\n'
+        for id_class_doc, classes in clases.iteritems():
+            NroDte = 0
+            for documento in classes:
+                doc = self.env['account.invoice'].browse(documento['id'])
+                dtes.update({str(doc.sii_batch_number): documento['envio']})
+                doc.sii_xml_request = documento['envio']
+                NroDte += 1
+                file_name += 'F' + str(int(doc.sii_document_number)) + 'T' + str(id_class_doc)
+            SubTotDTE += '<SubTotDTE>\n<TpoDTE>' + str(id_class_doc) + '</TpoDTE>\n<NroDTE>'+str(NroDte)+'</NroDTE>\n</SubTotDTE>\n'
         documentos =""
         for key in sorted(dtes.iterkeys()):
             documentos += '\n'+dtes[key]
@@ -1094,9 +1084,7 @@ exponent. AND DIGEST""")
         self.xml_validator(envio_dte, 'env')
         result = self.send_xml_file(envio_dte, file_name, company_id)
         for inv in self:
-            inv.write({'sii_xml_response':result['sii_xml_response'], 'sii_send_ident':result['sii_send_ident'], 'sii_result': result['sii_result']})
-            last = inv
-        last.write({'sii_xml_request':envio_dte})
+            inv.write({'sii_xml_response':result['sii_xml_response'], 'sii_send_ident':result['sii_send_ident'], 'sii_result': result['sii_result'], 'sii_xml_request':envio_dte})
 
 
     def _get_send_status(self, track_id, signature_d,token):
