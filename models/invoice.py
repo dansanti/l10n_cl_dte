@@ -590,14 +590,14 @@ version="1.0">
             raise Warning(_('''There is no CAF file available or in use \
 for this Document. Please enable one.'''))
 
-        if folio > folio_final:
+        if folio > int(folio_final):
             msg = '''El folio de este documento: {} está fuera de rango \
 del CAF vigente (desde {} hasta {}). Solicite un nuevo CAF en el sitio \
 www.sii.cl'''.format(folio, folio_inicial, folio_final)
             #_logger.info(msg)
             # defino el status como "spent"
             caffile.status = 'spent'
-            raise Warning(_(msg))
+            raise UserError(_(msg))
         return False
 
     '''
