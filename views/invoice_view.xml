@@ -31,5 +31,30 @@
                 </notebook>
             </field>
         </record>
+        <record id="view_supplier_invoice_form" model="ir.ui.view">
+            <field name="name">l10n_cl.invoice.form</field>
+            <field name="model">account.invoice</field>
+            <field name="inherit_id" ref="account.invoice_supplier_form"/>
+            <field name="arch" type="xml">
+                <!-- TODO ver si es necesario cambiar este contexto o no -->
+                <!-- TODO cambiar color del boton de envio una vez enviado -->
+                <field name="invoice_line_ids" position="attributes">
+                    <attribute name="context">{'partner_id': partner_id, 'price_type': context.get('price_type') or False, 'type': type}" name="invoice_line_ids" on_change="onchange_invoice_line(invoice_line_ids)</attribute>
+                </field>
+                <notebook>
+                    <page string="Electronic Invoice" name="electronic_invoice" >
+                      <header>
+                        <button string="Subir XML" type="object"  name="get_xml_file"  attrs="{'invisible':[('state', 'in', ['draft'])]}"/>
+                        <button string="Validar DTE" type="object" class="oe_highlight" name="ask_for_dte_status" attrs="{'readonly':[('estado_recep_dte','in',['','NoEnviado','Proceso'])],'invisible':[('state', 'in', ['draft']),('estado_recep_dte','in',['','NoEnviado'])]}"/>
+                        <field name='estado_recep_dte' widget="statusbar"/>
+                      </header>
+                      <group>
+                        <field name="estado_recep_glosa" />
+                        <field name="sii_xml_request" />
+                      </group>
+                    </page>
+                </notebook>
+            </field>
+        </record>
     </data>
 </openerp>

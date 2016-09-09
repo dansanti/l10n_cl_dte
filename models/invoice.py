@@ -746,7 +746,19 @@ exponent. AND DIGEST""")
         help="SII request result",
         default = '')
     canceled = fields.Boolean(string="Canceled?")
-    
+    estado_recep_dte = fields.Selection(
+        [
+            ('no_revisado','No Revisado'),
+            ('0','Conforme'),
+            ('1','Envio Rechazado - Error de Schema'),
+            ('2','Envio Rechazado - Error de Firma'),
+            ('3','Envio Rechazado - RUT Receptor No Corresponde'),
+            ('90','Envio Rechazado - Archivo Repetido'),
+            ('91','Envio Rechazado - Archivo Ilegible'),
+            ('99','Envio Rechazado - Otros')
+        ],string="Estado de Recepcion del Envio")
+    estado_recep_glosa = fields.Char(string="Información Adicional del Estado de Recepción")
+
     @api.multi
     def get_related_invoices_data(self):
         """
