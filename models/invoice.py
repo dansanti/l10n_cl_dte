@@ -222,10 +222,8 @@ class invoice(models.Model):
                 schema = etree.XMLSchema(file=xsd_file)
                 parser = objectify.makeparser(schema=schema)
                 objectify.fromstring(some_xml_string, parser)
-                #_logger.info(_("The Document XML file validated correctly: \(%s)") % validacion)
                 return True
             except XMLSyntaxError as e:
-                #_logger.info(_("The Document XML file has error: %s") % e.args)
                 raise Warning(_('XML Malformed Error %s') % e.args)
 
     '''
@@ -437,7 +435,6 @@ version="1.0">
         msg = msg if self.xml_validator(msg, 'sig') else ''
         if type=='doc':
             fulldoc = self.create_template_doc1(message, msg)
-            fulldoc = fulldoc if self.xml_validator(fulldoc, type) else ''
         if type=='env':
             fulldoc = self.create_template_env1(message,msg)
         fulldoc = fulldoc if self.xml_validator(fulldoc, type) else ''
@@ -1093,7 +1090,6 @@ exponent. AND DIGEST""")
         envio_dte = self.sign_full_xml(
             envio_dte, signature_d['priv_key'], certp,
             'SetDoc', 'env')
-        self.xml_validator(envio_dte, 'env')
         result = self.send_xml_file(envio_dte, file_name, company_id)
         for inv in self:
             inv.write({'sii_xml_response':result['sii_xml_response'], 'sii_send_ident':result['sii_send_ident'], 'sii_result': result['sii_result'], 'sii_xml_request':envio_dte})
