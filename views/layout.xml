@@ -259,4 +259,18 @@
                 <h2></h2>
             </xpath>
           </template>
+          <template id="invoice_cedible">
+            <t t-call="account.report_invoice" />
+              <xpath expr="//h2" position="replace">
+                <h3 class="pull-right" > CEDIBLE</h3>
+              </xpath>
+          </template>
+          <report
+                    string="Print Cedible"
+                    id="action_print_cedible"
+                    model="account.invoice"
+                    report_type="qweb-pdf"
+                    name="l10n_cl_dte.invoice_cedible"
+                    file="l10n_cl_dte.report_invoice_cedible"
+          />
 </openerp>

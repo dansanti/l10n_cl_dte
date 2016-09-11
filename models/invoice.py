@@ -1161,3 +1161,9 @@ exponent. AND DIGEST""")
             if self.sii_result != 'Proceso':
                 return status
         return self._get_dte_status(signature_d, token)
+
+    @api.multi
+    def print_cedible(self):
+        """ Print Cedible
+        """
+        return self.env['report'].get_action(self, 'l10n_cl_dte.invoice_cedible')
