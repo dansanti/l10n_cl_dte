@@ -6,6 +6,9 @@
             <field name="name">account.invoice.sii.form</field>
             <field name="inherit_id" ref="account.invoice_form" />
             <field name="arch" type="xml">
+              <header position="inside">
+                <button string="Imprimir Cedible" type="object" name="print_cedible" />
+              </header>
                 <!-- TODO ver si es necesario cambiar este contexto o no -->
                 <!-- TODO cambiar color del boton de envio una vez enviado -->
                 <field name="invoice_line_ids" position="attributes">
@@ -44,8 +47,10 @@
                 <notebook>
                     <page string="Electronic Invoice" name="electronic_invoice" >
                       <header>
-                        <button string="Subir XML" type="object"  name="get_xml_file"  attrs="{'invisible':[('state', 'in', ['draft'])]}"/>
-                        <button string="Validar DTE" type="object" class="oe_highlight" name="ask_for_dte_status" attrs="{'readonly':[('estado_recep_dte','in',['','NoEnviado','Proceso'])],'invisible':[('state', 'in', ['draft']),('estado_recep_dte','in',['','NoEnviado'])]}"/>
+                        <button string="Subir XML" type="object"  name="wizard_upload"  attrs="{'invisible':[('state', 'in', ['paid']), '|', ('sii_xml_request','!=', False)]}"/>
+                        <button string="Validar DTE" type="object" class="oe_highlight" name="wizard_validar" attrs="{
+                              'readonly':[('estado_recep_dte','in',['','NoEnviado','Proceso'])],
+                              'invisible':[('state', 'in', ['draft']),('estado_recep_dte','in',['','NoEnviado'])]}"/>
                         <field name='estado_recep_dte' widget="statusbar"/>
                       </header>
                       <group>

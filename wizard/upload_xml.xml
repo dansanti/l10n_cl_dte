@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <record id="sii_dte_upload_xml_form" model="ir.ui.view">
+            <field name="name">SII WS Consult Wizard form</field>
+            <field name="model">sii.dte.upload_xml.wizard</field>
+            <field name="arch" type="xml">
+                <form string="SII DTE Upload XML Wizard">
+                    <group>
+                        <field name="xml_file" />
+                        <field name="filename" readonly="True"/>
+                        <field name="action" widget="radio"/>
+                    </group>
+                    <footer>
+                        <button string="Confirm" name="confirm" type="object" class="oe_highlight" />
+                        or
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</openerp>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <record id="sii_dte_validar_form" model="ir.ui.view">
+            <field name="name">SII WS Consult Wizard form</field>
+            <field name="model">sii.dte.validar.wizard</field>
+            <field name="arch" type="xml">
+                <form string="SII DTE Upload XML Wizard">
+                    <group>
+                        <field name="action" widget="radio"/>
+                    </group>
+                    <footer>
+                        <button string="Confirm" name="confirm" type="object" class="oe_highlight" />
+                        or
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    </data>
+</openerp>
