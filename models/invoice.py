@@ -624,6 +624,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
      @version: 2016-05-01
     '''
     def format_vat(self, value):
+        ''' Se Elimina el 0 para prevenir problemas con el sii, ya que las muestras no las toma si va con
+        el 0 , y tambien internamente se generan problemas'''
         rut = value[:10] + '-' + value[10:]
         rut = rut.replace('CL0','').replace('CL','')
         return rut
