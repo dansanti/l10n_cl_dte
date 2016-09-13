@@ -6,9 +6,9 @@
             <field name="name">account.invoice.sii.form</field>
             <field name="inherit_id" ref="account.invoice_form" />
             <field name="arch" type="xml">
-              <header position="inside">
+               <button name="invoice_print" position="after">
                 <button string="Imprimir Cedible" type="object" name="print_cedible" />
-              </header>
+              </button>
                 <!-- TODO ver si es necesario cambiar este contexto o no -->
                 <!-- TODO cambiar color del boton de envio una vez enviado -->
                 <field name="invoice_line_ids" position="attributes">

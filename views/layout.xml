@@ -14,7 +14,7 @@
                       </div>
                   </div>
                   <div class="row">
-                      <div class="col-xs-7" style="width:400px !important;">
+                      <div class="col-xs-7" style="width:505px !important;">
                           <img t-if="company.logo" t-att-src="'data:image/png;base64,%s' % company.logo" style="max-height: 45px;"/>
                           <h5 style="text-align:lef;text-transform:uppercase;font-weight:900;font-size:15px;color:black;">
                               <span t-field="o.company_id.partner_id.name"/>
@@ -257,7 +257,7 @@
                    </div>
                    <div class="row">
                      <h2 class="pull-right"></h2>
-                     <h3 class="pull-right" > CEDIBLE</h3>
+                     <h3 class="pull-right" t-if="cedible"> CEDIBLE</h3>
                    </div>
                 </div>
 
@@ -265,10 +265,13 @@
           </template>
 
           <template id="invoice_cedible">
-            <t t-call="account.report_invoice" />
-              <xpath expr="//h2" position="replace">
-                <h3 class="pull-right" > CEDIBLE</h3>
-              </xpath>
+            <t t-call="report.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="account.report_invoice" >
+                      <t t-set="cedible" t-value="True" />
+                  </t>
+                </t>
+              </t>
           </template>
           <report
                     string="Print Cedible"
@@ -277,5 +280,7 @@
                     report_type="qweb-pdf"
                     name="l10n_cl_dte.invoice_cedible"
                     file="l10n_cl_dte.report_invoice_cedible"
+                    attachment_use="True"
+                    attachment="(object.state in ('open','paid')) and ('CED_'+(object.number or '').replace('/','')+'.pdf')"
           />
 </openerp>
