@@ -28,6 +28,7 @@ class UploadXMLWizard(models.TransientModel):
         active_id = context.get('active_id', []) or []
         inv = self.env['account.invoice'].browse(active_id)
         inv.sii_xml_request = base64.b64decode(self.xml_file)
+        inv.sii_send_file_name = self.filename
         if self.action == 'response':
             inv.do_receipt_deliver()
         if self.action == 'receipt':

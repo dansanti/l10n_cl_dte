@@ -546,7 +546,6 @@ version="1.0">
         params['dvSender'] = signature_d['subject_serial_number'][-1]
         params['rutCompany'] = company_id.vat[2:-1]
         params['dvCompany'] = company_id.vat[-1]
-        file_name = file_name + '.xml'
         params['archivo'] = (file_name,envio_dte,"text/xml")
         multi  = urllib3.filepost.encode_multipart_formdata(params)
         headers.update({'Content-Length': '{}'.format(len(multi[0]))})
@@ -556,7 +555,6 @@ version="1.0">
             return retorno
         respuesta_dict = xmltodict.parse(response.data)
         if respuesta_dict['RECEPCIONDTE']['STATUS'] != '0':
-            _logger.info('l736-status no es 0')
             _logger.info(connection_status[respuesta_dict['RECEPCIONDTE']['STATUS']])
         else:
             retorno.update({'sii_result': 'Enviado','sii_send_ident':respuesta_dict['RECEPCIONDTE']['TRACKID']})
@@ -779,6 +777,7 @@ exponent. AND DIGEST""")
             ('99','Envio Rechazado - Otros')
         ],string="Estado de Recepcion del Envio")
     estado_recep_glosa = fields.Char(string="Información Adicional del Estado de Recepción")
+    sii_send_filaname = fields.Char(string="Send File Name")
 
     @api.multi
     def get_related_invoices_data(self):
@@ -1106,6 +1105,7 @@ exponent. AND DIGEST""")
                 NroDte += 1
                 file_name += 'F' + str(int(doc.sii_document_number)) + 'T' + str(id_class_doc)
             SubTotDTE += '<SubTotDTE>\n<TpoDTE>' + str(id_class_doc) + '</TpoDTE>\n<NroDTE>'+str(NroDte)+'</NroDTE>\n</SubTotDTE>\n'
+        file_name += ".xml"
         documentos =""
         for key in sorted(dtes.iterkeys()):
             documentos += '\n'+dtes[key]
@@ -1121,7 +1121,12 @@ exponent. AND DIGEST""")
             'SetDoc', 'env')
         result = self.send_xml_file(envio_dte, file_name, company_id)
         for inv in self:
-            inv.write({'sii_xml_response':result['sii_xml_response'], 'sii_send_ident':result['sii_send_ident'], 'sii_result': result['sii_result'], 'sii_xml_request':envio_dte})
+            inv.write({'sii_xml_response':result['sii_xml_response'],
+                'sii_send_ident':result['sii_send_ident'],
+                'sii_result': result['sii_result'],
+                'sii_xml_request':envio_dte,
+                'sii_send_file_name' : file_name,
+                })
 
 
     def _get_send_status(self, track_id, signature_d,token):
@@ -1291,7 +1296,7 @@ exponent. AND DIGEST""")
         envio = self._read_xml()
         xml = etree.fromstring(self.sii_xml_request.encode('UTF-8'))
         resp = collections.OrderedDict()
-        resp['NmbEnvio'] = "ENVIO_DTE_695318.xml"
+        resp['NmbEnvio'] = self.sii_send_file_name
         resp['FchRecep'] = self.time_stamp()
         resp['CodEnvio'] = self._acortar_str(str(IdRespuesta) + self.number[15:], 10)
         resp['EnvioDTEID'] = xml[0].attrib['ID']
@@ -1481,9 +1486,7 @@ exponent. AND DIGEST""")
     @api.multi
     def do_receipt(self):
         receipts = ""
-        filename = "recepcion_"
         for inv in self:
-            filename +=str(self.number)
             if inv.estado_recep_dte not in ['0']:
                 try:
                     signature_d = self.get_digital_signature(inv.company_id)
@@ -1504,10 +1507,10 @@ exponent. AND DIGEST""")
         raise UserError(envio_dte)
         #result = self.send_xml_file(envio_dte, file_name, company_id)
         from openerp.addons.web.controllers.main import serialize_exception, content_disposition
-        filename += ".xml"
+
         headers = [
             ('Content-Type', 'application/xml'),
-            ('Content-Disposition', content_disposition(filename)),
+            ('Content-Disposition', content_disposition(inv.sii_send_file_name)),
             ('charset', 'utf-8'),
         ]
         return request.make_response(
