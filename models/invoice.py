@@ -32,10 +32,6 @@ try:
     from suds.client import Client
 except:
     pass
-# from suds.transport.https import WindowsHttpAuthenticated
-# from suds.cache import ObjectCache
-
-# ejemplo de suds
 
 # intento con urllib3
 try:
@@ -46,13 +42,10 @@ except:
 # from urllib3 import HTTPConnectionPool
 #urllib3.disable_warnings()
 pool = urllib3.PoolManager()
-#ca_certs = "/etc/ssl/certs/ca-certificates.crt"
-#pool = urllib3.PoolManager(cert_reqs='CERT_REQUIRED', ca_certs=ca_certs)
-import textwrap
-
-# from inspect import currentframe, getframeinfo
-# estas 2 lineas son para imprimir el numero de linea del script
-# (solo para debug)
+try:
+    import textwrap
+except:
+    pass
 
 _logger = logging.getLogger(__name__)
 
@@ -147,7 +140,6 @@ class invoice(models.Model):
     _inherit = "account.invoice"
 
     def split_cert(self, cert):
-        # certp = cert.replace('\n', '')
         certf, j = '', 0
         for i in range(0, 29):
             certf += cert[76 * i:76 * (i + 1)] + '\n'
@@ -189,19 +181,6 @@ class invoice(models.Model):
         if new_coding.upper() != encoding.upper():
             data = data.decode(encoding, data).encode(new_coding)
         return data
-
-    '''
-    Funcion auxiliar para saber que codificacion tiene el string
-     @author: Daniel Blanco Martin (daniel[at]blancomartin.cl)
-     @version: 2016-06-01
-    '''
-    def whatisthis(self, s):
-        if isinstance(s, str):
-            _logger.info("ordinary string")
-        elif isinstance(s, unicode):
-            _logger.info("unicode string")
-        else:
-            _logger.info("not a string")
 
     '''
     Funcion para validar los xml generados contra el esquema que le corresponda
@@ -274,9 +253,6 @@ class invoice(models.Model):
         xml = '''<DTE xmlns="http://www.sii.cl/SiiDte" version="1.0">
 {}
 </DTE>'''.format(doc)
-        # create_template_doc
-        # anulo el efecto de la funcion
-        # para hacer un detached
         return xml
 
     '''
@@ -502,8 +478,6 @@ version="1.0">
      @version: 2016-06-01
     '''
     def get_resolution_data(self, comp_id):
-        #_logger.info('Entering function get_resolution_data')
-        #_logger.info('Service provider for this company is %s' % comp_id.dte_service_provider)
         resolution_data = {
             'dte_resolution_date': comp_id.dte_resolution_date,
             'dte_resolution_number': comp_id.dte_resolution_number}
@@ -513,19 +487,19 @@ version="1.0">
     def send_xml_file(self, envio_dte=None, file_name="envio",company_id=False):
         if not company_id.dte_service_provider:
             raise UserError(_("Not Service provider selected!"))
-        #try:
-        signature_d = self.get_digital_signature_pem(
-            company_id)
-        seed = self.get_seed(company_id)
-        template_string = self.create_template_seed(seed)
-        seed_firmado = self.sign_seed(
-            template_string, signature_d['priv_key'],
-            signature_d['cert'])
-        token = self.get_token(seed_firmado,company_id)
-        #_logger.info(_("Token is: {}").format(token))
-    #    except:
-    #        raise Warning(connection_status[response.e])
-    #        return {'sii_result': 'NoEnviado'}
+        try:
+            signature_d = self.get_digital_signature_pem(
+                company_id)
+            seed = self.get_seed(company_id)
+            template_string = self.create_template_seed(seed)
+            seed_firmado = self.sign_seed(
+                template_string, signature_d['priv_key'],
+                signature_d['cert'])
+            token = self.get_token(seed_firmado,company_id)
+        _logger.info(_("Token is: {}").format(token))
+        except:
+            raise Warning(connection_status[response.e])
+            return {'sii_result': 'NoEnviado'}
 
         url = 'https://palena.sii.cl'
         if company_id.dte_service_provider == 'SIIHOMO':
@@ -634,7 +608,6 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
      @version: 2016-05-01
     '''
     def pdf417bc(self, ted):
-        #_logger.info('Drawing the TED stamp in PDF417')
         bc = barcode(
             'pdf417',
             ted,
@@ -674,15 +647,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         rsa.sign_init()
         rsa.sign_update(MESSAGE)
         FRMT = base64.b64encode(rsa.sign_final())
-        #_logger.info('Document signature in base64: %s' % FRMT)
         if digst == '':
-            #_logger.info("""Signature verified! Returning signature, modulus and exponent.""")
             return {
                 'firma': FRMT, 'modulus': base64.b64encode(rsa_m.n),
                 'exponent': base64.b64eDigesncode(rsa_m.e)}
         else:
-            _logger.info("""Signature verified! Returning signature, modulus, \
-exponent. AND DIGEST""")
             return {
                 'firma': FRMT, 'modulus': base64.b64encode(rsa_m.n),
                 'exponent': base64.b64encode(rsa_m.e),
@@ -701,14 +670,11 @@ exponent. AND DIGEST""")
         rsa.sign_init()
         rsa.sign_update(MESSAGE)
         FRMT = base64.b64encode(rsa.sign_final())
-        #_logger.info('Document signature in base64: %s' % FRMT)
         if digst == '':
-            #_logger.info("""Signature verified! Returning signature, modulus and exponent.""")
             return {
                 'firma': FRMT, 'modulus': base64.b64encode(rsa_m.n),
                 'exponent': base64.b64encode(rsa_m.e)}
         else:
-            #_logger.info("""Signature verified! Returning signature, modulus, \exponent. AND DIGEST""")
             return {
                 'firma': FRMT, 'modulus': base64.b64encode(rsa_m.n),
                 'exponent': base64.b64encode(rsa_m.e),
@@ -833,9 +799,7 @@ exponent. AND DIGEST""")
             ' algoritmo="SHA1withRSA">').replace(
             '<key name="#text">','').replace(
             '</key>','').replace('<CAF>','<CAF version="1.0">')+'</DD>'
-        ###### con esta funcion fuerzo la conversion a iso-8859-1
         ddxml = inv.convert_encoding(ddxml, 'utf-8')
-        # ahora agarro la clave privada y ya tengo los dos elementos
         # que necesito para firmar
         keypriv = (resultcaf['AUTORIZACION']['RSASK']).encode(
             'latin-1').replace('\t','')
@@ -853,9 +817,7 @@ exponent. AND DIGEST""")
         ted = (
             '''<TED version="1.0">{}<FRMT algoritmo="SHA1withRSA">{}\
 </FRMT></TED>''').format(ddxml, frmt)
-        #_logger.info(ted)
         root = etree.XML(ted)
-        # inv.sii_barcode = (etree.tostring(root, pretty__logger.info=True))
         inv.sii_barcode = ted
         image = False
         if ted:
@@ -1087,9 +1049,7 @@ exponent. AND DIGEST""")
                 raise UserError("Está combinando compañías")
             company_id = inv.company_id
             #@TODO hacer autoreconciliación
-            #if inv.sii_document_class_id.sii_code in [61, 56]:
-            #   inv.state = "paid"
-            #   inv.reconciled = True
+
         file_name = ""
         dtes={}
         SubTotDTE = ''
