@@ -8,7 +8,7 @@
                 <form string="SII DTE Upload XML Wizard">
                     <group>
                         <field name="xml_file" />
-                        <field name="filename" readonly="True"/>
+                        <field name="filename" />
                         <field name="action" widget="radio"/>
                     </group>
                     <footer>

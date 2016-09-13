@@ -497,6 +497,7 @@ version="1.0">
                 template_string, signature_d['priv_key'],
                 signature_d['cert'])
             token = self.get_token(seed_firmado,company_id)
+            _logger.info(_("Token is: {}").format(token))
         except:
             raise Warning(connection_status[response.e])
             return {'sii_result': 'NoEnviado'}
@@ -743,7 +744,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             ('99','Envio Rechazado - Otros')
         ],string="Estado de Recepcion del Envio")
     estado_recep_glosa = fields.Char(string="Información Adicional del Estado de Recepción")
-    sii_send_filaname = fields.Char(string="Send File Name")
+    sii_send_file_name = fields.Char(string="Send File Name")
 
     @api.multi
     def get_related_invoices_data(self):

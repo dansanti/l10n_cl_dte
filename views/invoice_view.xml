@@ -28,6 +28,7 @@
                             <field name='sii_message' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
                             <field name='sii_send_ident' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
                             <field name='sii_xml_response' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
+                            <field name='sii_send_file_name' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
                             <field name='sii_xml_request' attrs="{'invisible':[('sii_result', '=', '')]}" readonly="1"/>
                         </group>
                     </page>
@@ -55,6 +56,7 @@
                       </header>
                       <group>
                         <field name="estado_recep_glosa" />
+                        <field name='sii_send_file_name' readonly="1"/>
                         <field name="sii_xml_request" />
                       </group>
                     </page>
