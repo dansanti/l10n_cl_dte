@@ -217,8 +217,9 @@ class invoice(models.Model):
     def get_seed(self, company_id):
         #En caso de que haya un problema con la validación de certificado del sii ( por una mala implementación de ellos)
         #esto omite la validacion
-        import ssl
-        ssl._create_default_https_context = ssl._create_unverified_context
+        if company_id.dte_service_provider == 'SIIHOMO':
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context
         url = server_url[company_id.dte_service_provider] + 'CrSeed.jws?WSDL'
         ns = 'urn:'+server_url[company_id.dte_service_provider] + 'CrSeed.jws'
         _server = SOAPProxy(url, ns)
