@@ -33,13 +33,12 @@ try:
 except:
     pass
 
-# intento con urllib3
 try:
     import urllib3
 except:
     pass
 
-# from urllib3 import HTTPConnectionPool
+
 #urllib3.disable_warnings()
 pool = urllib3.PoolManager()
 try:
@@ -497,7 +496,6 @@ version="1.0">
                 template_string, signature_d['priv_key'],
                 signature_d['cert'])
             token = self.get_token(seed_firmado,company_id)
-            _logger.info(_("Token is: {}").format(token))
         except:
             raise Warning(connection_status[response.e])
             return {'sii_result': 'NoEnviado'}
@@ -801,7 +799,6 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             '<key name="#text">','').replace(
             '</key>','').replace('<CAF>','<CAF version="1.0">')+'</DD>'
         ddxml = inv.convert_encoding(ddxml, 'utf-8')
-        # que necesito para firmar
         keypriv = (resultcaf['AUTORIZACION']['RSASK']).encode(
             'latin-1').replace('\t','')
         keypub = (resultcaf['AUTORIZACION']['RSAPUBK']).encode(
@@ -1050,7 +1047,6 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 raise UserError("Está combinando compañías")
             company_id = inv.company_id
             #@TODO hacer autoreconciliación
-
         file_name = ""
         dtes={}
         SubTotDTE = ''
@@ -1259,7 +1255,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         resp = collections.OrderedDict()
         resp['NmbEnvio'] = self.sii_send_file_name
         resp['FchRecep'] = self.time_stamp()
-        resp['CodEnvio'] = self._acortar_str(str(IdRespuesta) + self.number[15:], 10)
+        resp['CodEnvio'] = self._acortar_str(IdRespuesta + self.number[15:], 10)
         resp['EnvioDTEID'] = xml[0].attrib['ID']
         resp['Digest'] = xml[1][0][2][2].text
         EstadoRecepEnv, RecepEnvGlosa = self._validar_caratula(envio['EnvioDTE']['SetDTE']['Caratula'])
@@ -1286,6 +1282,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         return resp
 
     def do_receipt_deliver(self):
+        id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
+        IdRespuesta = self.env['ir.sequence'].browse(id_seq).next_by_id()
         for inv in self:
             if inv.estado_recep_dte not in ['0']:
                 try:
@@ -1298,7 +1296,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 signature.'''))
                 certp = signature_d['cert'].replace(
                     BC, '').replace(EC, '').replace('\n', '')
-                recep = inv._receipt(1)
+                recep = inv._receipt(IdRespuesta)
                 envio = self._read_xml()
                 NroDetalles = len(envio['EnvioDTE']['SetDTE']['DTE'])
         dicttoxml.set_debug(False)
@@ -1307,7 +1305,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                     {0}
                     </RecepcionEnvio>
                     '''.format(resp_dtes)
-        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.format_vat(inv.company_id.vat), 1, NroDetalles), root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
+        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.format_vat(inv.company_id.vat), IdRespuesta, NroDetalles), root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
         resp = self._RecepcionEnvio(caratula, RecepcionEnvio )
 
         respuesta = self.sign_full_xml(
@@ -1315,7 +1313,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             'Odoo_resp', 'env_resp')
         raise UserError(respuesta)
 
-    def _validar_dte_en_envio(self, doc):
+    def _validar_dte_en_envio(self, doc, IdRespuesta):
         res = collections.OrderedDict()
         res['TipoDTE'] = doc['Encabezado']['IdDoc']['TipoDTE']
         res['Folio'] = doc['Encabezado']['IdDoc']['Folio']
@@ -1323,7 +1321,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         res['RUTEmisor'] = doc['Encabezado']['Emisor']['RUTEmisor']
         res['RUTRecep'] = doc['Encabezado']['Receptor']['RUTRecep']
         res['MntTotal'] = doc['Encabezado']['Totales']['MntTotal']
-        res['CodEnvio'] = 1
+        res['CodEnvio'] = str(IdRespuesta) + str(doc['Encabezado']['IdDoc']['Folio'])
         partner_id = self.env['res.partner'].search([('vat','like', doc['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
         sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(doc['Encabezado']['IdDoc']['TipoDTE']))])
         res['EstadoDTE'] = 0
@@ -1347,15 +1345,15 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         #@TODO hacer más Validaciones, como por ejemplo, valores por línea
         return res
 
-    def _resultado(self):
+    def _resultado(self, IdRespuesta):
         envio = self._read_xml()
         size = len(envio['EnvioDTE']['SetDTE']['DTE'])
         if size == 1:
-            return {'ResultadoDTE' : self._validar_dte_en_envio(envio['EnvioDTE']['SetDTE']['DTE']['Documento'])}
+            return {'ResultadoDTE' : self._validar_dte_en_envio(envio['EnvioDTE']['SetDTE']['DTE']['Documento'],IdRespuesta)}
         else:
             for doc in envio['EnvioDTE']['SetDTE']['DTE']:
                 if doc['Documento']['Encabezado']['IdDoc']['Folio'] == self.reference:
-                    return {'ResultadoDTE' : self._validar_dte_en_envio(doc['Documento'])}
+                    return {'ResultadoDTE' : self._validar_dte_en_envio(doc['Documento'], IdRespuesta)}
         return False
 
     def _ResultadoDTE(self, Caratula, resultado):
@@ -1372,6 +1370,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         return resp
 
     def do_validar_comercial(self):
+        id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
+        IdRespuesta = self.env['ir.sequence'].browse(id_seq).next_by_id()
         for inv in self:
             if inv.estado_recep_dte not in ['0']:
                 try:
@@ -1384,13 +1384,13 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 signature.'''))
                 certp = signature_d['cert'].replace(
                     BC, '').replace(EC, '').replace('\n', '')
-                dte = inv._resultado()
+                dte = inv._resultado(IdRespuesta)
                 envio = self._read_xml()
                 NroDetalles = len(envio['EnvioDTE']['SetDTE']['DTE'])
         dicttoxml.set_debug(False)
         ResultadoDTE = dicttoxml.dicttoxml(dte, root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
 
-        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.format_vat(inv.company_id.vat), 1, NroDetalles), root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
+        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.format_vat(inv.company_id.vat), IdRespuesta, NroDetalles), root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
         resp = self._ResultadoDTE(caratula, ResultadoDTE  )
 
         respuesta = self.sign_full_xml(

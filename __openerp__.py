@@ -46,6 +46,7 @@ Chile: API and GUI to access Electronic Invoicing webservices.
         'wizard/upload_xml.xml',
         'wizard/validar.xml',
         'data/sii.regional.offices.csv',
+        'data/sequence.xml',
         'security/ir.model.access.csv',
     ],
     'installable': True,
