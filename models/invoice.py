@@ -497,7 +497,6 @@ version="1.0">
                 template_string, signature_d['priv_key'],
                 signature_d['cert'])
             token = self.get_token(seed_firmado,company_id)
-        _logger.info(_("Token is: {}").format(token))
         except:
             raise Warning(connection_status[response.e])
             return {'sii_result': 'NoEnviado'}
