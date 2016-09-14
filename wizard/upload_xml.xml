@@ -7,7 +7,7 @@
             <field name="arch" type="xml">
                 <form string="SII DTE Upload XML Wizard">
                     <group>
-                        <field name="xml_file" />
+                        <field name="xml_file"  filename="filename"/>
                         <field name="filename" />
                         <field name="action" widget="radio"/>
                     </group>
