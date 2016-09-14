@@ -1,66 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <openerp>
-      <template id="dte_external_layout_header" inherit_id="report.external_layout_header">
-        <xpath expr="//div[@class='header']" position="replace">
-          <t t-if="'journal_document_class_id' in o and o.journal_document_class_id">
-            <t t-set="document_class_id" t-value="o.journal_document_class_id.sii_document_class_id"/>
-          </t>
-                <div class="header">
-                  <div class="row">
-                      <div class="col-xs-6">
-                          <p style="text-align:left;text-transform:uppercase;font-weight:900;font-size:20px;color:black;">
-                              <span t-field="o.company_id.partner_id.ref"/>
-                          </p>
-                      </div>
-                  </div>
-                  <div class="row">
-                      <div class="col-xs-7" style="width:505px !important;">
-                          <img t-if="company.logo" t-att-src="'data:image/png;base64,%s' % company.logo" style="max-height: 45px;"/>
-                          <h5 style="text-align:lef;text-transform:uppercase;font-weight:900;font-size:15px;color:black;">
-                              <span t-field="o.company_id.partner_id.name"/>
-                          </h5>
-                          <p style="text-align:left;font-size:12px;color:black;">
-                            <t t-if="'turn_issuer' in o and o.turn_issuer" >
-                              <span t-field="o.turn_issuer.name" style="color:black;"/><br />
-                            </t>
-                              <!-- domicilios -->
-                              <span t-field="o.company_id.partner_id.street"/>, <span t-field="o.company_id.partner_id.city_id.name"/>, <span t-field="o.company_id.partner_id.city"/><br />
-                              <!-- domicilios -->
-                              <span> Teléfono: <span t-field="o.company_id.partner_id.phone"/></span><br/>
-                              <span>E-Mail: <span t-field="o.company_id.partner_id.email"/></span><br/>
-                              <span t-field="o.company_id.partner_id.website"/>
-                          </p>
-                      </div>
-                      <div class="col-xs-5">
-                          <div style="position:relative;left:-25px;border: 3px solid red;text-align: center;font-size:20px;padding-bottom:0px !important; height:170px; width:370px;">
-                            <h6 style="color:red;font-size:25px;padding-bottom:10px; padding-top:5px; font-family:Arial;">
-                                R.U.T.: <span t-field="o.company_id.partner_id.document_number"/>
-                            </h6>
-                            <h6 name="document_class_id" t-if="document_class_id" style="line-height:30px;font-size:23px;color:red;text-align:center;text-transform:uppercase;padding-bottom:10px;font-family:Arial;">
-                               <span t-field="document_class_id.name"/>
-                            </h6>
-                            <h6 t-if="'sii_document_number' in o and o.sii_document_number" style="color: red;text-align: center;font-size:20px;padding-bottom:5px;font-family:Arial;">
-                                N° <span  t-field="o.sii_document_number"/>
-                            </h6>
-                            <br/>
-                        </div>
-                        <div  class="row" style="text-align: center; margin-top:0px !important; padding-top:0px!important;">
-                            <h6 style="color:red;text-align:center;font-size:15px;text-transform:uppercase;">
-                                SII - <span t-field="o.company_id.sii_regional_office_id.name"/>
-                            </h6>
-                        </div>
-                      </div>
-                  </div>
-                  <div class="row" style="display:none !important;">
-                    <div name="company_address"/>
-
-                  </div>
+      <template id="dte_external_layout">
+          <!-- Multicompany -->
+            <t t-if="not o and doc">
+                  <t t-set="o" t-value="doc"/>
+              </t>
+              <t t-if="o and 'company_id' in o">
+                  <t t-set="company" t-value="o.company_id"></t>
+              </t>
+              <t t-if="not o or not 'company_id' in o">
+                  <t t-set="company" t-value="res_company"></t>
+            </t>
+              <t t-if="'journal_document_class_id' in o and o.journal_document_class_id">
+                <t t-set="document_class_id" t-value="o.journal_document_class_id.sii_document_class_id"/>
+              </t>
+              <div class="header">
+                <div class="row">
+                    <div class="col-xs-6">
+                        <p style="text-align:left;text-transform:uppercase;font-weight:900;font-size:20px;color:black;">
+                            <span t-field="o.company_id.partner_id.ref"/>
+                        </p>
+                    </div>
                 </div>
-                <br />
-              </xpath>
-          </template>
-          <template id="dte_external_layout_invoice" inherit_id="account.report_invoice_document">
-            <xpath expr="//div[@class='page']" position="replace">
+                <div class="row">
+                    <div class="col-xs-7" style="width:505px !important;">
+                        <img t-if="company.logo" t-att-src="'data:image/png;base64,%s' % company.logo" style="max-height: 45px;"/>
+                        <h5 style="text-align:lef;text-transform:uppercase;font-weight:900;font-size:15px;color:black;">
+                            <span t-field="o.company_id.partner_id.name"/>
+                        </h5>
+                        <p style="text-align:left;font-size:12px;color:black;">
+                          <t t-if="'turn_issuer' in o and o.turn_issuer" >
+                            <span t-field="o.turn_issuer.name" style="color:black;"/><br />
+                          </t>
+                            <!-- domicilios -->
+                            <span t-field="o.company_id.partner_id.street"/>, <span t-field="o.company_id.partner_id.city_id.name"/>, <span t-field="o.company_id.partner_id.city"/><br />
+                            <!-- domicilios -->
+                            <span> Teléfono: <span t-field="o.company_id.partner_id.phone"/></span><br/>
+                            <span>E-Mail: <span t-field="o.company_id.partner_id.email"/></span><br/>
+                            <span t-field="o.company_id.partner_id.website"/>
+                        </p>
+                    </div>
+                    <div class="col-xs-5">
+                        <div style="position:relative;left:-25px;border: 3px solid red;text-align: center;font-size:20px;padding-bottom:0px !important; height:170px; width:370px;">
+                          <h6 style="color:red;font-size:25px;padding-bottom:10px; padding-top:5px; font-family:Arial;">
+                              R.U.T.: <span t-field="o.company_id.partner_id.document_number"/>
+                          </h6>
+                          <h6 name="document_class_id" t-if="document_class_id" style="line-height:30px;font-size:23px;color:red;text-align:center;text-transform:uppercase;padding-bottom:10px;font-family:Arial;">
+                             <span t-field="document_class_id.name"/>
+                          </h6>
+                          <h6 t-if="'sii_document_number' in o and o.sii_document_number" style="color: red;text-align: center;font-size:20px;padding-bottom:5px;font-family:Arial;">
+                              N° <span  t-field="o.sii_document_number"/>
+                          </h6>
+                          <br/>
+                      </div>
+                      <div  class="row" style="text-align: center; margin-top:0px !important; padding-top:0px!important;">
+                          <h6 style="color:red;text-align:center;font-size:15px;text-transform:uppercase;">
+                              SII - <span t-field="o.company_id.sii_regional_office_id.name"/>
+                          </h6>
+                      </div>
+                    </div>
+                </div>
+                <div class="row" style="display:none !important;">
+                  <div name="company_address"/>
+                </div>
+            </div>
               <div class="page" style="padding-top:80px;">
                   <div class="row" style="border: 2px solid black;">
                       <table class="table cl_invoice">
@@ -103,10 +106,10 @@
                     	<table class="table table-condensed">
                     		<thead style="max-height:15px; font-size:10px !important;">
                     			<th>
-                    				<strong>Source:</strong>
+                    				<strong>Folio:</strong>
                     			</th>
                     			<th>
-                    				<strong>Reference:</strong>
+                    				<strong>Referencia:</strong>
                     			</th>
                     			<th>
                     				<strong>Motivo/observación:</strong>
@@ -137,15 +140,15 @@
                   </div>
                   <!-- Is there a discount on at least one line? -->
                    <t t-set="display_discount" t-value="any([l.discount for l in o.invoice_line_ids])"/>
-                  <div style="min-height:350px; max-height:350px;">
+                  <div style="min-height:500px; max-height:500px;">
                    <table class="table table-condensed">
                        <thead>
                            <tr style="max-height:8px; font-size:8px !important;">
-                              <th>Quantity</th>
-                              <th>Description</th>
-                              <th class="text-right">Unit Price</th>
-                              <th t-if="display_discount" class="text-right" groups="sale.group_discount_per_so_line">Disc.(%)</th>
-                              <th class="text-right">Price</th>
+                              <th>Cantidad</th>
+                              <th>Descripción</th>
+                              <th class="text-right">Precio Unitario</th>
+                              <th t-if="display_discount" class="text-right" groups="sale.group_discount_per_so_line">Desc.(%)</th>
+                              <th class="text-right">Precio</th>
                            </tr>
                        </thead>
                        <tbody class="invoice_tbody">
@@ -255,19 +258,24 @@
                         </div>
                       </div>
                    </div>
-                   <div class="row">
-                     <h2 class="pull-right"></h2>
-                     <h3 class="pull-right" t-if="cedible"> CEDIBLE</h3>
-                   </div>
                 </div>
+                <div class="footer">
+                  <h3 class="pull-right" t-if="cedible"> CEDIBLE</h3>
+                </div>
+          </template>
 
-            </xpath>
+          <template id="dte_invoice" inherit_id="account.report_invoice">
+              <t t-call="report.html_container" position="replace">
+                  <t t-foreach="docs" t-as="o">
+                      <t t-call="l10n_cl_dte.dte_external_layout" t-lang="o.partner_id.lang"/>
+                  </t>
+              </t>
           </template>
 
           <template id="invoice_cedible">
             <t t-call="report.html_container">
                 <t t-foreach="docs" t-as="o">
-                    <t t-call="account.report_invoice" >
+                    <t t-call="l10n_cl_dte.dte_invoice" >
                       <t t-set="cedible" t-value="True" />
                   </t>
                 </t>
