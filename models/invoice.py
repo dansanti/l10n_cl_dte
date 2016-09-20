@@ -8,8 +8,6 @@ from datetime import datetime, timedelta
 import logging
 from lxml import etree
 from lxml.etree import Element, SubElement
-from lxml import objectify
-from lxml.etree import XMLSyntaxError
 from openerp import SUPERUSER_ID
 
 import xml.dom.minidom
@@ -181,30 +179,26 @@ class invoice(models.Model):
             data = data.decode(encoding, data).encode(new_coding)
         return data
 
-    '''
-    Funcion para validar los xml generados contra el esquema que le corresponda
-    segun el tipo de documento.
-     @author: Daniel Blanco Martin (daniel[at]blancomartin.cl)
-     @version: 2016-06-01
-    '''
     def xml_validator(self, some_xml_string, validacion='doc'):
-        if 1==1:
-            validacion_type = {
-                'doc': 'DTE_v10.xsd',
-                'env': 'EnvioDTE_v10.xsd',
-                'recep' : 'Recibos_v10.xsd',
-                'env_recep' : 'EnvioRecibos_v10.xsd',
-                'env_resp': 'RespuestaEnvioDTE_v10.xsd',
-                'sig': 'xmldsignature_v10.xsd'
-            }
-            xsd_file = xsdpath+validacion_type[validacion]
-            try:
-                schema = etree.XMLSchema(file=xsd_file)
-                parser = objectify.makeparser(schema=schema)
-                objectify.fromstring(some_xml_string, parser)
-                return True
-            except XMLSyntaxError as e:
-                raise Warning(_('XML Malformed Error %s') % e.args)
+        validacion_type = {
+            'doc': 'DTE_v10.xsd',
+            'env': 'EnvioDTE_v10.xsd',
+            'recep' : 'Recibos_v10.xsd',
+            'env_recep' : 'EnvioRecibos_v10.xsd',
+            'env_resp': 'RespuestaEnvioDTE_v10.xsd',
+            'sig': 'xmldsignature_v10.xsd'
+        }
+        xsd_file = xsdpath+validacion_type[validacion]
+        try:
+            xmlschema_doc = etree.parse(xsd_file)
+            xmlschema = etree.XMLSchema(xmlschema_doc)
+            xml_doc = etree.fromstring(some_xml_string)
+            result = xmlschema.validate(xml_doc)
+            if not result:
+                xmlschema.assert_(xml_doc)
+            return result
+        except AssertionError as e:
+            raise UserError(_('XML Malformed Error:  %s') % e.args)
 
     '''
     Funcion usada en autenticacion en SII
@@ -1289,7 +1283,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 try:
                     signature_d = self.get_digital_signature(inv.company_id)
                 except:
-                    raise Warning(_('''There is no Signer Person with an \
+                    raise UserError(_('''There is no Signer Person with an \
                 authorized signature for you in the system. Please make sure that \
                 'user_signature_key' module has been installed and enable a digital \
                 signature, for you or make the signer to authorize you to use his \
