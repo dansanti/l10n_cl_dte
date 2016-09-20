@@ -946,7 +946,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 for t in inv.tax_line_ids:
                     if t.tax_id.sii_code in [14, 15]:
                         IVA = t
-                if IVA.base > 0:
+                if IVA and IVA.base > 0:
                     dte['Encabezado']['Totales']['MntNeto'] = int(round((IVA.base), 0))
                 if MntExe > 0:
                     dte['Encabezado']['Totales']['MntExe'] = int(round( MntExe))
