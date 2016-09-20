@@ -2,7 +2,6 @@
 
 
 from openerp import fields, models, api, _
-from openerp.exceptions import Warning
 from openerp.exceptions import UserError
 from datetime import datetime, timedelta
 import logging
@@ -36,9 +35,16 @@ try:
 except:
     pass
 
+try:
+    urllib3.disable_warnings()
+except:
+    pass
 
-#urllib3.disable_warnings()
-pool = urllib3.PoolManager()
+try:
+    pool = urllib3.PoolManager()
+except:
+    pass
+
 try:
     import textwrap
 except:
@@ -210,9 +216,11 @@ class invoice(models.Model):
     def get_seed(self, company_id):
         #En caso de que haya un problema con la validación de certificado del sii ( por una mala implementación de ellos)
         #esto omite la validacion
-        if company_id.dte_service_provider == 'SIIHOMO':
+        try:
             import ssl
             ssl._create_default_https_context = ssl._create_unverified_context
+        except:
+            pass
         url = server_url[company_id.dte_service_provider] + 'CrSeed.jws?WSDL'
         ns = 'urn:'+server_url[company_id.dte_service_provider] + 'CrSeed.jws'
         _server = SOAPProxy(url, ns)
@@ -491,7 +499,7 @@ version="1.0">
                 signature_d['cert'])
             token = self.get_token(seed_firmado,company_id)
         except:
-            raise Warning(connection_status[response.e])
+            raise UserError(connection_status)
             return {'sii_result': 'NoEnviado'}
 
         url = 'https://palena.sii.cl'
@@ -570,7 +578,7 @@ version="1.0">
             if folio in range(int(folio_inicial), (int(folio_final)+1)):
                 return post
         if not caffiles:
-            raise Warning(_('''There is no CAF file available or in use \
+            raise UserError(_('''There is no CAF file available or in use \
 for this Document. Please enable one.'''))
 
         if folio > int(folio_final):
@@ -833,7 +841,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             try:
                 signature_d = self.get_digital_signature(inv.company_id)
             except:
-                raise Warning(_('''There is no Signer Person with an \
+                raise UserError(_('''There is no Signer Person with an \
             authorized signature for you in the system. Please make sure that \
             'user_signature_key' module has been installed and enable a digital \
             signature, for you or make the signer to authorize you to use his \
@@ -1139,7 +1147,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 signature_d['cert'])
             token = self.get_token(seed_firmado,self.company_id)
         except:
-            raise Warning(connection_status[response.e])
+            raise UserError(connection_status[response.e])
         xml_response = xmltodict.parse(self.sii_xml_response)
         if self.sii_result == 'Enviado':
             status = self._get_send_status(self.sii_send_ident, signature_d, token)
@@ -1371,7 +1379,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 try:
                     signature_d = self.get_digital_signature(inv.company_id)
                 except:
-                    raise Warning(_('''There is no Signer Person with an \
+                    raise UserError(_('''There is no Signer Person with an \
                 authorized signature for you in the system. Please make sure that \
                 'user_signature_key' module has been installed and enable a digital \
                 signature, for you or make the signer to authorize you to use his \
@@ -1446,7 +1454,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 try:
                     signature_d = self.get_digital_signature(inv.company_id)
                 except:
-                    raise Warning(_('''There is no Signer Person with an \
+                    raise UserError(_('''There is no Signer Person with an \
                 authorized signature for you in the system. Please make sure that \
                 'user_signature_key' module has been installed and enable a digital \
                 signature, for you or make the signer to authorize you to use his \
