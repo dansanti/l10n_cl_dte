@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+      <record id="view_sii_cola_envio_form" model="ir.ui.view">
+          <field name="name">sii.cola_envio.form</field>
+          <field name="model">sii.cola_envio</field>
+          <field name="arch" type="xml">
+              <form string="SII Cola de envío">
+                  <group>
+                    <field name="doc_ids"/>
+                    <field name="model"/>
+                    <field name="user_id" />
+                    <field name='tipo_trabajo'/>
+                    <field name="active"/>
+                  </group>
+              </form>
+          </field>
+      </record>
+
+      <record id="view_sii_cola_envio_tree" model="ir.ui.view">
+          <field name="name">sii.cola_envio.tree</field>
+          <field name="model">sii.cola_envio</field>
+          <field name="arch" type="xml">
+              <tree string="SII Cola de envío">
+                  <field name="doc_ids"/>
+                  <field name="model"/>
+                  <field name="user_id" />
+                  <field name='tipo_trabajo'/>
+                  <field name="active"/>
+              </tree>
+          </field>
+      </record>
+
+      <record model="ir.actions.act_window" id="cola_envio">
+          <field name="name">SII Cola de envío</field>
+          <field name="type">ir.actions.act_window</field>
+          <field name="res_model">sii.cola_envio</field>
+          <field name="view_type">form</field>
+          <field name="view_mode">tree,form</field>
+      </record>
+
+      <menuitem name="Cola de envío" action="cola_envio" id="menu_action_sii_cola_envio" parent="l10n_cl_partner_activities.menu_sii_config"/>
+</openerp>

@@ -1,3 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_sii_regional_offices,access_sii_regional_offices,model_sii_regional_offices,base.group_system,1,1,1,1
+edit_sii_regional_offices,edit_sii_regional_offices,model_sii_regional_offices,base.group_system,1,1,1,1
 access_sii_regional_offices,access_sii_regional_offices,model_sii_regional_offices,,1,0,0,0
+edit_sii_cola_envio,edit_sii_cola_envio,model_sii_cola_envio,account.group_account_manager,1,1,1,1
+access_sii_cola_envio,acess_sii_cola_envio,model_sii_cola_envio,,1,0,0,0

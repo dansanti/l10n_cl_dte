@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data noupdate="1">
+        <record id="ir_cron_sii_request" model="ir.cron">
+            <field name="name">Cron de envío y consulta estado documento en el sii</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">minutes</field>
+            <field name="numbercall">-1</field>
+            <field name="model">sii.cola_envio</field>
+            <field name="function">_cron_procesar_cola</field>
+            <field name="active" eval="True" />
+        </record>
+    </data>
+</openerp>

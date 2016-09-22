@@ -18,11 +18,12 @@
                     <page string="Electronic Invoice" name="electronic_invoice" >
                         <header>
                             <button string="Download XML" type="object"  name="get_xml_file"  attrs="{'invisible':[('state', 'in', ['draft'])]}"/>
-                            <button string="Send XML" type="object" class="oe_highlight" name="do_dte_send_invoice" attrs="{'invisible': ['|', ('state', 'in', ['draft']),('sii_send_ident', '!=', False)]}"/>
-                            <button string="Ask for DTE" type="object" class="oe_highlight" name="ask_for_dte_status" attrs="{'readonly':[('sii_result','in',['','NoEnviado','Proceso'])],'invisible':[('state', 'in', ['draft']),('sii_result','in',['','NoEnviado'])]}"/>
+                            <button string="Send XML" type="object" class="oe_highlight" name="do_dte_send_invoice" attrs="{'invisible': ['|', ('state', 'in', ['draft']),('sii_result', 'not in', ['','NoEnviado'])]}"/>
+                            <button string="Ask for DTE" type="object" class="oe_highlight" name="ask_for_dte_status" attrs="{'invisible':['|', ('state', 'in', ['draft']),('sii_result','in',['','NoEnviado'])]}"/>
                             <field name='sii_result' widget="statusbar"/>
                         </header>
                         <group>
+                            <field name="responsable_envio" invisible="True" readonly="True"/>
                             <field name='sii_batch_number' readonly="1"/>
                             <field name='sii_barcode_img' widget="image" attrs="{'invisible':[('sii_result', '=', '')]}" readonly="1"/>
                             <field name='sii_message' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
