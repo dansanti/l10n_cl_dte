@@ -952,10 +952,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         dte['Encabezado']['Receptor']['CiudadRecep'] = self.partner_id.city
         dte['Encabezado']['Totales'] = collections.OrderedDict()
         if self.sii_document_class_id.sii_code == 34 or (self.referencias and self.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):
-            MntExe = self.amount_total
-            if 'global_discount' in self and self.global_discount:
-                MntExe = (MntExe * (1 - (self.global_discount/100)))
-            dte['Encabezado']['Totales']['MntExe'] = int(round(MntExe, 0))
+            dte['Encabezado']['Totales']['MntExe'] = int(round(self.amount_total, 0))
             if  no_product:
                 dte['Encabezado']['Totales']['MntExe'] = 0
         elif self.amount_untaxed and self.amount_untaxed != 0:
