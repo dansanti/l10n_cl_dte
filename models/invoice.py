@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from openerp import fields, models, api, _
 from openerp.exceptions import UserError
 from datetime import datetime, timedelta
@@ -552,9 +551,9 @@ version="1.0">
      @author: Daniel Blanco Martin (daniel[at]blancomartin.cl)
      @version: 2016-05-01
     '''
-    def get_folio(self, inv):
+    def get_folio(self):
         # saca el folio directamente de la secuencia
-        return int(inv.sii_document_number)
+        return int(self.sii_document_number)
 
     '''
          Se Retorna el CAF que corresponda a la secuencia, independiente del estado
@@ -564,7 +563,7 @@ version="1.0">
     '''
     def get_caf_file(self, inv):
         caffiles = inv.journal_document_class_id.sequence_id.dte_caf_ids
-        folio = self.get_folio(inv)
+        folio = inv.get_folio()
         for caffile in caffiles:
             post = base64.b64decode(caffile.caf_file)
             post = xmltodict.parse(post.replace(
@@ -714,6 +713,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     sii_result = fields.Selection([
         ('', 'n/a'),
         ('NoEnviado', 'No Enviado'),
+        ('EnCola','En cola de envío'),
         ('Enviado', 'Enviado'),
         ('Aceptado', 'Aceptado'),
         ('Rechazado', 'Rechazado'),
@@ -766,8 +766,6 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     @api.multi
     def invoice_validate(self):
         for inv in self:
-            inv.responsable_envio = self.env.user.id
-            inv.sii_result = 'NoEnviado'
             if inv.type in ['out_invoice', 'out_invoice']:
                 inv._timbrar()
         super(invoice,self).invoice_validate()
@@ -784,11 +782,94 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                                     'tipo_trabajo':'envio',
                                     'n_atencion': n_atencion
                                     })
+        for inv in self:
+            inv.responsable_envio = self.env.user.id
+            inv.sii_result = 'EnCola'
+
+    def _giros_emisor(self):
+        giros_emisor = []
+        for turn in self.company_id.company_activities_ids:
+            giros_emisor.extend([{'Acteco': turn.code}])
+        return giros_emisor
+
+    def _receptor(self):
+        Receptor = collections.OrderedDict()
+        Receptor['RUTRecep'] = self.format_vat(self.partner_id.vat)
+        Receptor['RznSocRecep'] = self.partner_id.name
+        if not self.invoice_turn:
+            raise UserError(_('Seleccione giro del partner'))
+        Receptor['GiroRecep'] = self.invoice_turn.name[:40]
+        Receptor['DirRecep'] = self.partner_id.street+ ' ' + (self.partner_id.street2 or '')
+        Receptor['CmnaRecep'] = self.partner_id.city_id.name
+        Receptor['CiudadRecep'] = self.partner_id.city
+        return Receptor
+
+    def _totales(self, MntExe=0, no_product=False):
+        Totales = collections.OrderedDict()
+        if self.sii_document_class_id.sii_code == 34 or (self.referencias and self.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):
+            Totales['MntExe'] = int(round(self.amount_total, 0))
+            if  no_product:
+                Totales['MntExe'] = 0
+        elif self.amount_untaxed and self.amount_untaxed != 0:
+            IVA = False
+            for t in self.tax_line_ids:
+                if t.tax_id.sii_code in [14, 15]:
+                    IVA = t
+            if IVA and IVA.base > 0:
+                Totales['MntNeto'] = int(round((IVA.base), 0))
+            if MntExe > 0:
+                Totales['MntExe'] = int(round( MntExe))
+            if IVA:
+                Totales['TasaIVA'] = round(IVA.tax_id.amount,2)
+                Totales['IVA'] = int(round(IVA.amount, 0))
+            if no_product:
+                Totales['MntNeto'] = 0
+                Totales['TasaIVA'] = 0
+                Totales['IVA'] = 0
+            if IVA and IVA.tax_id.sii_code in [15]:
+                Totales['ImptoReten'] = collections.OrderedDict()
+                Totales['ImptoReten']['TpoImp'] = IVA.tax_id.sii_code
+                Totales['ImptoReten']['TasaImp'] = round(IVA.tax_id.amount,2)
+                Totales['ImptoReten']['MontoImp'] = int(round(IVA.amount))
+        monto_total = int(round(self.amount_total, 0))
+        if no_product:
+            monto_total = 0
+        Totales['MntTotal'] = monto_total
+        return Totales
+
+
+    def _encabezado(self, MntExe=0, no_product=False):
+        Encabezado = collections.OrderedDict()
+        Encabezado['IdDoc'] = collections.OrderedDict()
+        Encabezado['IdDoc']['TipoDTE'] = self.sii_document_class_id.sii_code
+        Encabezado['IdDoc']['Folio'] = self.get_folio()
+        Encabezado['IdDoc']['FchEmis'] = self.date_invoice
+        # todo: forma de pago y fecha de vencimiento - opcional
+        Encabezado['IdDoc']['FmaPago'] = self.forma_pago or 1
+        Encabezado['IdDoc']['FchVenc'] = self.date_due or datetime.strftime(datetime.now(), '%Y-%m-%d')
+        Encabezado['Emisor'] = collections.OrderedDict()
+        Encabezado['Emisor']['RUTEmisor'] = self.format_vat(self.company_id.vat)
+        Encabezado['Emisor']['RznSoc'] = self.company_id.partner_id.name
+        Encabezado['Emisor']['GiroEmis'] = self.turn_issuer.name[:80]
+        # todo: Telefono y Correo opcional
+        Encabezado['Emisor']['Telefono'] = self.company_id.phone or ''
+        Encabezado['Emisor']['CorreoEmisor'] = self.company_id.dte_email
+        Encabezado['Emisor']['item'] = self._giros_emisor()
+        #@TODO: <CdgSIISucur>077063816</CdgSIISucur> codigo de sucursal
+        # no obligatorio si no hay sucursal, pero es un numero entregado
+        # por el SII para cada sucursal.
+        # este deberia agregarse al "punto de venta" el cual ya esta
+        Encabezado['Emisor']['DirOrigen'] = self.company_id.street + ' ' +(self.company_id.street2 or '')
+        Encabezado['Emisor']['CmnaOrigen'] = self.company_id.city_id.name
+        Encabezado['Emisor']['CiudadOrigen'] = self.company_id.city
+        Encabezado['Receptor'] = self._receptor()
+        Encabezado['Totales'] = self._totales(MntExe, no_product)
+        return Encabezado
 
     @api.multi
-    def get_barcode(self, dte_service, no_product=False):
+    def get_barcode(self, no_product=False):
         ted = False
-        folio = self.get_folio(self)
+        folio = self.get_folio()
         result['TED']['DD']['RE'] = self.format_vat(self.company_id.vat)
         result['TED']['DD']['TD'] = self.sii_document_class_id.sii_code
         result['TED']['DD']['F']  = folio
@@ -843,32 +924,10 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             image.save(barcodefile,'PNG')
             data = barcodefile.getvalue()
             self.sii_barcode_img = base64.b64encode(data)
-        ted  = ted + '<TmstFirma>{}</TmstFirma>'.format(timestamp)
+        ted  += '<TmstFirma>{}</TmstFirma>'.format(timestamp)
         return ted
 
-    def _timbrar(self, n_atencion=None):
-        try:
-            signature_d = self.get_digital_signature(self.company_id)
-        except:
-            raise UserError(_('''There is no Signer Person with an \
-        authorized signature for you in the system. Please make sure that \
-        'user_signature_key' module has been installed and enable a digital \
-        signature, for you or make the signer to authorize you to use his \
-        signature.'''))
-        certp = signature_d['cert'].replace(
-            BC, '').replace(EC, '').replace('\n', '')
-        dte_service = self.company_id.dte_service_provider
-        no_product = False
-        if self.invoice_line_ids[0].product_id.default_code == 'NO_PRODUCT':
-            no_product = True
-        ted1 = self.get_barcode( dte_service, no_product)
-        ted_dict = xmltodict.parse('<TED>' + ted1 + '</TED>')
-        folio = ted_dict['TED']['TED']['DD']['F']
-        if dte_service in ['', 'NONE']:
-            return
-        giros_emisor = []
-        for turn in self.company_id.company_activities_ids:
-            giros_emisor.extend([{'Acteco': turn.code}])
+    def _invoice_lines(self):
         line_number = 1
         invoice_lines = []
         no_product = False
@@ -914,97 +973,24 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 lines['MontoItem'] = 0
             line_number += 1
             invoice_lines.extend([{'Detalle': lines}])
-        folio = self.get_folio(self)
-        dte = collections.OrderedDict()
-        dte1 = collections.OrderedDict()
+        return {
+                'invoice_lines': invoice_lines,
+                'MntExe':MntExe,
+                'no_product':no_product,
+                }
 
-        dte['Encabezado'] = collections.OrderedDict()
-        dte['Encabezado']['IdDoc'] = collections.OrderedDict()
-        dte['Encabezado']['IdDoc']['TipoDTE'] = self.sii_document_class_id.sii_code
-        dte['Encabezado']['IdDoc']['Folio'] = folio
-        dte['Encabezado']['IdDoc']['FchEmis'] = self.date_invoice
-        # todo: forma de pago y fecha de vencimiento - opcional
-        dte['Encabezado']['IdDoc']['FmaPago'] = self.forma_pago or 1
-        dte['Encabezado']['IdDoc']['FchVenc'] = self.date_due or datetime.strftime(datetime.now(), '%Y-%m-%d')
-        dte['Encabezado']['Emisor'] = collections.OrderedDict()
-        dte['Encabezado']['Emisor']['RUTEmisor'] = self.format_vat(self.company_id.vat)
-        dte['Encabezado']['Emisor']['RznSoc'] = self.company_id.partner_id.name
-        dte['Encabezado']['Emisor']['GiroEmis'] = self.turn_issuer.name[:80]
-        # todo: Telefono y Correo opcional
-        dte['Encabezado']['Emisor']['Telefono'] = self.company_id.phone or ''
-        dte['Encabezado']['Emisor']['CorreoEmisor'] = self.company_id.dte_email
-        dte['Encabezado']['Emisor']['item'] = giros_emisor # giros de la compañia - codigos
-        #@TODO: <CdgSIISucur>077063816</CdgSIISucur> codigo de sucursal
-        # no obligatorio si no hay sucursal, pero es un numero entregado
-        # por el SII para cada sucursal.
-        # este deberia agregarse al "punto de venta" el cual ya esta
-        dte['Encabezado']['Emisor']['DirOrigen'] = self.company_id.street + ' ' +(self.company_id.street2 or '')
-        dte['Encabezado']['Emisor']['CmnaOrigen'] = self.company_id.city_id.name
-        dte['Encabezado']['Emisor']['CiudadOrigen'] = self.company_id.city
-        dte['Encabezado']['Receptor'] = collections.OrderedDict()
-        dte['Encabezado']['Receptor']['RUTRecep'] = self.format_vat(self.partner_id.vat)
-        dte['Encabezado']['Receptor']['RznSocRecep'] = self.partner_id.name
-        if not self.invoice_turn:
-            raise UserError(_('Seleccione giro del partner'))
-        dte['Encabezado']['Receptor']['GiroRecep'] = self.invoice_turn.name[:40]
-        dte['Encabezado']['Receptor']['DirRecep'] = self.partner_id.street+ ' ' + (self.partner_id.street2 or '')
-        dte['Encabezado']['Receptor']['CmnaRecep'] = self.partner_id.city_id.name
-        dte['Encabezado']['Receptor']['CiudadRecep'] = self.partner_id.city
-        dte['Encabezado']['Totales'] = collections.OrderedDict()
-        if self.sii_document_class_id.sii_code == 34 or (self.referencias and self.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):
-            dte['Encabezado']['Totales']['MntExe'] = int(round(self.amount_total, 0))
-            if  no_product:
-                dte['Encabezado']['Totales']['MntExe'] = 0
-        elif self.amount_untaxed and self.amount_untaxed != 0:
-            IVA = False
-            for t in self.tax_line_ids:
-                if t.tax_id.sii_code in [14, 15]:
-                    IVA = t
-            if IVA and IVA.base > 0:
-                dte['Encabezado']['Totales']['MntNeto'] = int(round((IVA.base), 0))
-            if MntExe > 0:
-                dte['Encabezado']['Totales']['MntExe'] = int(round( MntExe))
-            if IVA:
-                dte['Encabezado']['Totales']['TasaIVA'] = round(IVA.tax_id.amount,2)
-                dte['Encabezado']['Totales']['IVA'] = int(round(IVA.amount, 0))
-            if no_product:
-                dte['Encabezado']['Totales']['MntNeto'] = 0
-                dte['Encabezado']['Totales']['TasaIVA'] = 0
-                dte['Encabezado']['Totales']['IVA'] = 0
-            if IVA and IVA.tax_id.sii_code in [15]:
-                dte['Encabezado']['Totales']['ImptoReten'] = collections.OrderedDict()
-                dte['Encabezado']['Totales']['ImptoReten']['TpoImp'] = IVA.tax_id.sii_code
-                dte['Encabezado']['Totales']['ImptoReten']['TasaImp'] = round(IVA.tax_id.amount,2)
-                dte['Encabezado']['Totales']['ImptoReten']['MontoImp'] = int(round(IVA.amount))
-        monto_total = int(round(self.amount_total, 0))
-        if no_product:
-            monto_total = 0
-        dte['Encabezado']['Totales']['MntTotal'] = monto_total
-        lin_dr = 1
-        dr_lines = []
-        if self.global_discount:# or self.global_rec:
-            dr_line = {}
-            dr_line = collections.OrderedDict()
-            dr_line['NroLinDR'] = lin_dr
-            dr_line['TpoMov'] = 'D'
-            if self.global_discount_detail:
-                dr_line['GlosaDR'] = self.global_discount_detail
-            disc_type = "%"
-            if self.global_discount_type == "amount":
-                disc_type = "$"
-            dr_line['TpoValor'] = disc_type
-            dr_line['ValorDR'] = round(self.global_discount,2)
-            if self.sii_document_class_id.sii_code in [34] and (self.referencias and self.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):#solamente si es exento
-                dr_line['IndExeDR'] = 1
-            dr_lines.extend([{'DscRcgGlobal':dr_line}])
+    def _dte(self, n_atencion=None):
+        dte = collections.OrderedDict()
+        invoice_lines = self._invoice_lines()
+        dte['Encabezado'] = self._encabezado(invoice_lines['MntExe'], invoice_lines['no_product'])
         lin_ref = 1
         ref_lines = []
-        if dte_service == 'SIIHOMO' and isinstance(n_atencion, unicode):
+        if self.company_id.dte_service_provider == 'SIIHOMO' and isinstance(n_atencion, unicode):
             ref_line = {}
             ref_line = collections.OrderedDict()
             ref_line['NroLinRef'] = lin_ref
             ref_line['TpoDocRef'] = "SET"
-            ref_line['FolioRef'] = folio
+            ref_line['FolioRef'] = self.get_folio()
             ref_line['FchRef'] = datetime.strftime(datetime.now(), '%Y-%m-%d')
             ref_line['RazonRef'] = "CASO "+n_atencion+"-" + str(self.sii_batch_number)
             lin_ref = 2
@@ -1022,18 +1008,39 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                     ref_line['CodRef'] = ref.sii_referencia_CodRef
                 ref_line['RazonRef'] = ref.motivo
                 ref_lines.extend([{'Referencia':ref_line}])
-        dte['item'] = invoice_lines
-        dte['drlines'] = dr_lines
+        dte['item'] = invoice_lines['invoice_lines']
         dte['reflines'] = ref_lines
+        dte['TEDd'] = self.get_barcode(invoice_lines['no_product'])
+        return dte
+
+    def _dte_to_xml(self, dte):
+        ted = dte['Documento ID']['TEDd']
+        dte['Documento ID']['TEDd'] = ''
+        xml = dicttoxml.dicttoxml(
+            dte, root=False, attr_type=False) \
+            .replace('<item>','').replace('</item>','')\
+            .replace('<reflines>','').replace('</reflines>','')\
+            .replace('<TEDd>','').replace('</TEDd>','')\
+            .replace('</Documento_ID>','\n'+ted+'\n</Documento_ID>')
+        return xml
+
+    def _timbrar(self, n_atencion=None):
+        try:
+            signature_d = self.get_digital_signature(self.company_id)
+        except:
+            raise UserError(_('''There is no Signer Person with an \
+        authorized signature for you in the system. Please make sure that \
+        'user_signature_key' module has been installed and enable a digital \
+        signature, for you or make the signer to authorize you to use his \
+        signature.'''))
+        certp = signature_d['cert'].replace(
+            BC, '').replace(EC, '').replace('\n', '')
+        folio = self.get_folio()
+        dte = collections.OrderedDict()
         doc_id_number = "F{}T{}".format(folio, self.sii_document_class_id.sii_code)
         doc_id = '<Documento ID="{}">'.format(doc_id_number)
-        dte['TEDd'] = 'TEDTEDTED'
-        dte1['Documento ID'] = dte
-        xml = dicttoxml.dicttoxml(
-            dte1, root=False, attr_type=False).replace('<item>','').replace('</item>','').replace('<reflines>','').replace('</reflines>','').replace('<drlines>','').replace('</drlines>','')
-
-        xml = xml.replace('<TEDd>TEDTEDTED</TEDd>', ted1)
-
+        dte['Documento ID'] = self._dte(n_atencion)
+        xml = self._dte_to_xml(dte)
         root = etree.XML( xml )
         xml_pret = etree.tostring(root, pretty_print=True).replace(
 '<Documento_ID>', doc_id).replace('</Documento_ID>', '</Documento>')
@@ -1044,6 +1051,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             envelope_efact, signature_d['priv_key'],
             self.split_cert(certp), doc_id_number)
         self.sii_xml_request = einvoice
+        self.sii_result = 'NoEnviado'
 
     @api.multi
     def do_dte_send(self, n_atencion="612122"):
@@ -1441,7 +1449,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         receipt['RutFirma'] = RutFirma
         receipt['Declaracion'] = 'El acuse de recibo que se declara en este acto, de acuerdo a lo dispuesto en la letra b) del Art. 4, y la letra c) del Art. 5 de la Ley 19.983, acredita que la entrega de mercaderias o servicio(s) prestado(s) ha(n) sido recibido(s).'
         receipt['TmstFirmaRecibo'] = self.time_stamp()
-        id = "T"+str(inv.sii_document_class_id.sii_code)+"F"+str(self.get_folio(inv))
+        id = "T"+str(inv.sii_document_class_id.sii_code)+"F"+str(inv.get_folio())
         doc = '''
         <Recibo version="1.0" xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte Recibos_v10.xsd" >
             <DocumentoRecibo ID="{0}" >
