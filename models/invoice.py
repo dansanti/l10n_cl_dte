@@ -838,7 +838,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         return Totales
 
 
-    def _encabezado(self, MntExe=0, no_product=False):
+    def _encabezado(self, MntExe=0, no_product=False, taxInclude=False):
         Encabezado = collections.OrderedDict()
         Encabezado['IdDoc'] = collections.OrderedDict()
         Encabezado['IdDoc']['TipoDTE'] = self.sii_document_class_id.sii_code
@@ -846,6 +846,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         Encabezado['IdDoc']['FchEmis'] = self.date_invoice
         # todo: forma de pago y fecha de vencimiento - opcional
         Encabezado['IdDoc']['FmaPago'] = self.forma_pago or 1
+        if taxInclude and MntExe == 0:
+        	Encabezado['IdDoc']['MntBruto'] = 1
         Encabezado['IdDoc']['FchVenc'] = self.date_due or datetime.strftime(datetime.now(), '%Y-%m-%d')
         Encabezado['Emisor'] = collections.OrderedDict()
         Encabezado['Emisor']['RUTEmisor'] = self.format_vat(self.company_id.vat)
@@ -941,9 +943,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 lines['CdgItem'] = collections.OrderedDict()
                 lines['CdgItem']['TpoCodigo'] = 'INT1'
                 lines['CdgItem']['VlrCodigo'] = line.product_id.default_code
-            ivaIncluido = False
+            taxInclude = False
             for t in line.invoice_line_tax_ids:
-                ivaIncluido = t.price_include
+                taxInclude = t.price_include
                 if t.amount == 0:
                     lines['IndExe'] = 1
                     MntExe += int(round(line.price_subtotal, 0))
@@ -960,15 +962,14 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 raise UserError("NO puede ser menor que 0")
             if not no_product:
                 lines['UnmdItem'] = line.uom_id.name[:4]
-            if not no_product and ivaIncluido:
-                lines['PrcItem'] = round((line.price_unit / (1 + (t.amount /100))), 4)
-            elif not no_product:
                 lines['PrcItem'] = round(line.price_unit, 4)
             if line.discount > 0:
                 lines['DescuentoPct'] = line.discount
                 lines['DescuentoMonto'] = int(round((((line.discount / 100) * lines['PrcItem'])* qty)))
-            if not no_product:
+            if not no_product and not taxInclude:
                 lines['MontoItem'] = int(round(line.price_subtotal, 0))
+            elif not no_product :
+                lines['MontoItem'] = round(line.price_tax_included,0)
             if no_product:
                 lines['MontoItem'] = 0
             line_number += 1
@@ -977,12 +978,13 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 'invoice_lines': invoice_lines,
                 'MntExe':MntExe,
                 'no_product':no_product,
+                'tax_include': taxInclude,
                 }
 
     def _dte(self, n_atencion=None):
         dte = collections.OrderedDict()
         invoice_lines = self._invoice_lines()
-        dte['Encabezado'] = self._encabezado(invoice_lines['MntExe'], invoice_lines['no_product'])
+        dte['Encabezado'] = self._encabezado(invoice_lines['MntExe'], invoice_lines['no_product'], invoice_lines['tax_include'])
         lin_ref = 1
         ref_lines = []
         if self.company_id.dte_service_provider == 'SIIHOMO' and isinstance(n_atencion, unicode):
