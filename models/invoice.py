@@ -766,6 +766,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     @api.multi
     def invoice_validate(self):
         for inv in self:
+        	inv.sii_result = 'NoEnviado'
+        	inv.responsable_envio = self.env.user.id
             if inv.type in ['out_invoice', 'out_invoice']:
                 inv._timbrar()
         super(invoice,self).invoice_validate()
