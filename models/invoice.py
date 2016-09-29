@@ -798,9 +798,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         Receptor = collections.OrderedDict()
         Receptor['RUTRecep'] = self.format_vat(self.partner_id.vat)
         Receptor['RznSocRecep'] = self.partner_id.name
-        if not self.invoice_turn:
+        if not self.activity_description:
             raise UserError(_('Seleccione giro del partner'))
-        Receptor['GiroRecep'] = self.invoice_turn.name[:40]
+        Receptor['GiroRecep'] = self._acortar_str(self.activity_description.name, 40)
         Receptor['DirRecep'] = self.partner_id.street+ ' ' + (self.partner_id.street2 or '')
         Receptor['CmnaRecep'] = self.partner_id.city_id.name
         Receptor['CiudadRecep'] = self.partner_id.city
@@ -854,7 +854,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         Encabezado['Emisor'] = collections.OrderedDict()
         Encabezado['Emisor']['RUTEmisor'] = self.format_vat(self.company_id.vat)
         Encabezado['Emisor']['RznSoc'] = self.company_id.partner_id.name
-        Encabezado['Emisor']['GiroEmis'] = self.turn_issuer.name[:80]
+        Encabezado['Emisor']['GiroEmis'] = self._acortar_str(self.company_id.activity_description.name, 80)
         # todo: Telefono y Correo opcional
         Encabezado['Emisor']['Telefono'] = self.company_id.phone or ''
         Encabezado['Emisor']['CorreoEmisor'] = self.company_id.dte_email
@@ -1055,7 +1055,6 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             envelope_efact, signature_d['priv_key'],
             self.split_cert(certp), doc_id_number)
         self.sii_xml_request = einvoice
-        self.sii_result = 'NoEnviado'
 
     @api.multi
     def do_dte_send(self, n_atencion="612122"):
