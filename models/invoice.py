@@ -765,12 +765,12 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     @api.multi
     def invoice_validate(self):
-        for inv in self:
-        	inv.sii_result = 'NoEnviado'
-        	inv.responsable_envio = self.env.user.id
-            if inv.type in ['out_invoice', 'out_invoice']:
-                inv._timbrar()
-        super(invoice,self).invoice_validate()
+		for inv in self:
+			inv.sii_result = 'NoEnviado'
+			inv.responsable_envio = self.env.user.id
+			if inv.type in ['out_invoice', 'out_invoice']:
+				inv._timbrar()
+		super(invoice,self).invoice_validate()
 
 
     @api.multi
@@ -948,9 +948,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             taxInclude = False
             for t in line.invoice_line_tax_ids:
                 taxInclude = t.price_include
-                if t.amount == 0:
+                if t.amount == 0 or t.sii_code in [0]:#@TODO mejor manera de identificar exento de afecto
                     lines['IndExe'] = 1
-                    MntExe += int(round(line.price_subtotal, 0))
+                    MntExe += int(round(line.price_tax_included, 0))
             lines['NmbItem'] = self._acortar_str(line.product_id.name,80) #
             lines['DscItem'] = self._acortar_str(line.name, 1000) #descripción más extenza
             if line.product_id.default_code:
@@ -968,7 +968,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             if line.discount > 0:
                 lines['DescuentoPct'] = line.discount
                 lines['DescuentoMonto'] = int(round((((line.discount / 100) * lines['PrcItem'])* qty)))
-            if not no_product and not taxInclude:
+            if no_product and MntExe > 0:
+                lines['MontoItem'] = MntExe
+            elif not no_product and not taxInclude:
                 lines['MontoItem'] = int(round(line.price_subtotal, 0))
             elif not no_product :
                 lines['MontoItem'] = round(line.price_tax_included,0)
@@ -976,6 +978,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 lines['MontoItem'] = 0
             line_number += 1
             invoice_lines.extend([{'Detalle': lines}])
+            if 'IndExe' in lines:
+            	taxInclude = False
         return {
                 'invoice_lines': invoice_lines,
                 'MntExe':MntExe,
