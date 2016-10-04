@@ -8,6 +8,7 @@
             <field name="arch" type="xml">
                <button name="invoice_print" position="after">
                 <button string="Imprimir Cedible" type="object" name="print_cedible" />
+                <button string="Imprimir en Formato Ticket" type="object" name="print_ticket" />
               </button>
                 <!-- TODO ver si es necesario cambiar este contexto o no -->
                 <!-- TODO cambiar color del boton de envio una vez enviado -->

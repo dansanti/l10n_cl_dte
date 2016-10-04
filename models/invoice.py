@@ -887,30 +887,32 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         Receptor['CiudadRecep'] = self.partner_id.city
         return Receptor
 
-    def _totales(self, MntExe=0, no_product=False):
+    def _totales(self, MntExe=0, no_product=False, taxInclude=False):
         Totales = collections.OrderedDict()
         if self.sii_document_class_id.sii_code == 34 or (self.referencias and self.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):
             Totales['MntExe'] = int(round(self.amount_total, 0))
             if  no_product:
                 Totales['MntExe'] = 0
         elif self.amount_untaxed and self.amount_untaxed != 0:
-            IVA = False
-            for t in self.tax_line_ids:
-                if t.tax_id.sii_code in [14, 15]:
-                    IVA = t
-            if IVA and IVA.base > 0:
-                Totales['MntNeto'] = int(round((IVA.base), 0))
+            if not self._es_boleta() or not taxInclude:
+                IVA = False
+                for t in self.tax_line_ids:
+                    if t.tax_id.sii_code in [14, 15]:
+                        IVA = t
+                if IVA and IVA.base > 0 :
+                    Totales['MntNeto'] = int(round((IVA.base), 0))
             if MntExe > 0:
                 Totales['MntExe'] = int(round( MntExe))
-            if IVA:
-                if not self._es_boleta():
-                    Totales['TasaIVA'] = round(IVA.tax_id.amount,2)
-                Totales['IVA'] = int(round(IVA.amount, 0))
-            if no_product:
-                Totales['MntNeto'] = 0
-                if not self._es_boleta():
-                    Totales['TasaIVA'] = 0
-                Totales['IVA'] = 0
+            if not self._es_boleta() or not taxInclude:
+                if IVA:
+                    if not self._es_boleta():
+                        Totales['TasaIVA'] = round(IVA.tax_id.amount,2)
+                    Totales['IVA'] = int(round(IVA.amount, 0))
+                if no_product:
+                    Totales['MntNeto'] = 0
+                    if not self._es_boleta():
+                        Totales['TasaIVA'] = 0
+                    Totales['IVA'] = 0
             if IVA and IVA.tax_id.sii_code in [15]:
                 Totales['ImptoReten'] = collections.OrderedDict()
                 Totales['ImptoReten']['TpoImp'] = IVA.tax_id.sii_code
@@ -1026,7 +1028,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             if line.product_id.default_code:
                 lines['NmbItem'] = self._acortar_str(line.product_id.name.replace('['+line.product_id.default_code+'] ',''),80)
             #lines['InfoTicket']
-            qty = int(round(line.quantity, 4))
+            qty = round(line.quantity, 4)
             if not no_product:
                 lines['QtyItem'] = qty
             if qty == 0 and not no_product:
@@ -1267,18 +1269,18 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     @api.multi
     def ask_for_dte_status(self):
-        try:
-            signature_d = self.get_digital_signature_pem(
-                self.company_id)
-            seed = self.get_seed(self.company_id)
-            template_string = self.create_template_seed(seed)
-            seed_firmado = self.sign_seed(
-                template_string, signature_d['priv_key'],
-                signature_d['cert'])
-            token = self.get_token(seed_firmado,self.company_id)
-        except:
-            _logger.info(connection_status)
-            raise UserError(connection_status)
+        #try:
+        signature_d = self.get_digital_signature_pem(
+            self.company_id)
+        seed = self.get_seed(self.company_id)
+        template_string = self.create_template_seed(seed)
+        seed_firmado = self.sign_seed(
+            template_string, signature_d['priv_key'],
+            signature_d['cert'])
+        token = self.get_token(seed_firmado,self.company_id)
+        #except:
+        #    _logger.info(connection_status)
+        #    raise UserError(connection_status)
         if not self.sii_send_ident:
             raise UserError('No se ha enviado aún el documento, aún está en cola de envío interna en odoo')
         if self.sii_result == 'Enviado':
@@ -1642,3 +1644,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         """ Print Cedible
         """
         return self.env['report'].get_action(self, 'l10n_cl_dte.invoice_cedible')
+
+    @api.multi
+    def print_ticket(self):
+        """ Print Cedible
+        """
+        return self.env['report'].get_action(self, 'l10n_cl_dte.report_ticket')
