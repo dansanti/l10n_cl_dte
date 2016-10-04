@@ -29,4 +29,4 @@ class ColaEnvio(models.Model):
                         docs.do_dte_send(c.n_atencion)
                         c.tipo_trabajo = 'consulta'
                     else:
-                        docs.ask_for_dte_status()
+                        docs[0].ask_for_dte_status()
