@@ -809,7 +809,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                                     'tipo_trabajo':'envio',
                                     'n_atencion': n_atencion
                                     })
-                                    
+
     def _es_boleta(self):
         if self.sii_document_class_id.sii_code in [35, 38, 39, 41, 70, 71]:
             return True
@@ -849,7 +849,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     def _emisor(self):
         Emisor= collections.OrderedDict()
+        if not self.company_id.vat:
+            raise UserError("Debe ingresar el rut del emisor")
         Emisor['RUTEmisor'] = self.format_vat(self.company_id.vat)
+        if not self.company_id.activity_description:
+            raise UserError("Debe ingresar la glosa descriptiva del giro del emisor")
         if self._es_boleta():
             Emisor['RznSocEmisor'] = self.company_id.partner_id.name
             Emisor['GiroEmisor'] = self._acortar_str(self.company_id.activity_description.name, 80)
