@@ -206,6 +206,7 @@ class invoice(models.Model):
                 xmlschema.assert_(xml_doc)
             return result
         except AssertionError as e:
+            _logger.info(etree.tostring(xml_doc))
             raise UserError(_('XML Malformed Error:  %s') % e.args)
 
     '''
@@ -460,7 +461,7 @@ version="1.0">
             obj = user = self.env.user
         if not obj.cert:
             obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
-            if not obj or not user.id in obj.authorized_users_ids.ids:
+            if not obj or not obj.cert:
                 obj = self.env['res.company'].browse([comp_id.id])
                 if not obj.cert or not user.id in obj.authorized_users_ids.ids:
                     return False
@@ -479,7 +480,7 @@ version="1.0">
             obj = user = self.env.user
         if not obj.cert:
             obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
-            if not obj or not user.id in obj.authorized_users_ids.ids:
+            if not obj or not obj.cert:
                 obj = self.env['res.company'].browse([comp_id.id])
                 if not obj.cert or not user.id in obj.authorized_users_ids.ids:
                     return False
@@ -584,9 +585,12 @@ version="1.0">
          Deja fuera Los del antiguo CAF, que son válidos aún, porque no se han enviado; y arroja Error
          de que la secuencia no está en el rango del CAF
     '''
-    def get_caf_file(self, inv):
-        caffiles = inv.journal_document_class_id.sequence_id.dte_caf_ids
-        folio = inv.get_folio()
+    def get_caf_file(self):
+        caffiles = self.journal_document_class_id.sequence_id.dte_caf_ids
+        if not caffiles:
+            raise UserError(_('''There is no CAF file available or in use \
+for this Document. Please enable one.'''))
+        folio = self.get_folio()
         for caffile in caffiles:
             post = base64.b64decode(caffile.caf_file)
             post = xmltodict.parse(post.replace(
@@ -595,10 +599,6 @@ version="1.0">
             folio_final = post['AUTORIZACION']['CAF']['DA']['RNG']['H']
             if folio in range(int(folio_inicial), (int(folio_final)+1)):
                 return post
-        if not caffiles:
-            raise UserError(_('''There is no CAF file available or in use \
-for this Document. Please enable one.'''))
-
         if folio > int(folio_final):
             msg = '''El folio de este documento: {} está fuera de rango \
 del CAF vigente (desde {} hasta {}). Solicite un nuevo CAF en el sitio \
@@ -795,6 +795,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     @api.multi
     def do_dte_send_invoice(self, n_atencion=None):
+        for inv in self:
+            if inv.sii_result not in ['','NoEnviado','Rechazado']:
+                raise UserError("El documento %s ya ha sido enviado o está en cola de envío" % inv.sii_document_number)
+            inv.responsable_envio = self.env.user.id
+            inv.sii_result = 'EnCola'
         if not isinstance(n_atencion, unicode):
             n_atencion = ''
         self.env['sii.cola_envio'].create({
@@ -804,10 +809,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                                     'tipo_trabajo':'envio',
                                     'n_atencion': n_atencion
                                     })
-        for inv in self:
-            inv.responsable_envio = self.env.user.id
-            inv.sii_result = 'EnCola'
-
+                                    
     def _es_boleta(self):
         if self.sii_document_class_id.sii_code in [35, 38, 39, 41, 70, 71]:
             return True
@@ -881,7 +883,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         if self.partner_id.phone:
             Receptor['Contacto'] = self.partner_id.phone
         if self.partner_id.dte_email and not self._es_boleta():
-            Receptor['CorreoRecp'] = self.partner_id.dte_email
+            Receptor['CorreoRecep'] = self.partner_id.dte_email
         Receptor['DirRecep'] = self.partner_id.street+ ' ' + (self.partner_id.street2 or '')
         Receptor['CmnaRecep'] = self.partner_id.city_id.name
         Receptor['CiudadRecep'] = self.partner_id.city
@@ -958,7 +960,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 result['TED']['DD']['IT1'] = self._acortar_str(line.product_id.name.replace('['+line.product_id.default_code+'] ',''),40)
             break
 
-        resultcaf = self.get_caf_file(self)
+        resultcaf = self.get_caf_file()
         result['TED']['DD']['CAF'] = resultcaf['AUTORIZACION']['CAF']
         dte = result['TED']['DD']
         dicttoxml.set_debug(False)
