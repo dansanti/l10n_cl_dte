@@ -788,7 +788,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 		for inv in self:
 			inv.sii_result = 'NoEnviado'
 			inv.responsable_envio = self.env.user.id
-			if inv.type in ['out_invoice', 'out_invoice']:
+			if inv.type in ['out_invoice', 'out_refund']:
 				inv._timbrar()
 		super(invoice,self).invoice_validate()
 
