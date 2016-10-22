@@ -1072,7 +1072,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         dte['Encabezado'] = self._encabezado(invoice_lines['MntExe'], invoice_lines['no_product'], invoice_lines['tax_include'])
         lin_ref = 1
         ref_lines = []
-        if self.company_id.dte_service_provider == 'SIIHOMO' and isinstance(n_atencion, unicode) and not self._es_boleta():
+        if self.company_id.dte_service_provider == 'SIIHOMO' and isinstance(n_atencion, unicode) and n_atencion != '' and not self._es_boleta():
             ref_line = {}
             ref_line = collections.OrderedDict()
             ref_line['NroLinRef'] = lin_ref
@@ -1147,7 +1147,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         self.sii_xml_request = einvoice
 
     @api.multi
-    def do_dte_send(self, n_atencion="612122"):
+    def do_dte_send(self, n_atencion=None):
         dicttoxml.set_debug(False)
         DTEs = {}
         clases = {}
