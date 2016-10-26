@@ -27,6 +27,7 @@
                             <field name="responsable_envio" invisible="True" readonly="True"/>
                             <field name='sii_batch_number' readonly="1"/>
                             <field name='sii_barcode_img' widget="image" attrs="{'invisible':[('sii_result', '=', '')]}" readonly="1"/>
+                            <field name='sii_receipt' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
                             <field name='sii_message' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
                             <field name='sii_send_ident' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
                             <field name='sii_xml_response' attrs="{'invisible':[('sii_result', 'in', ['','NoEnviado'])]}" readonly="1"/>
@@ -59,7 +60,10 @@
                       <group>
                         <field name="estado_recep_glosa" />
                         <field name='sii_send_file_name' readonly="1"/>
-                        <field name="sii_xml_request" />
+                        <field name="sii_xml_response" string="XML de Validación Envío"  readonly="1" />
+                        <field name='sii_receipt' string="XML de Recepción de mercaderías" readonly="1"/>
+                        <field name='sii_message' string="XML de Validación Comercial" readonly="1"/>
+                        <field name="sii_xml_request"  readonly="1" />
                       </group>
                     </page>
                 </notebook>

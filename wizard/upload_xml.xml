@@ -2,13 +2,14 @@
 <openerp>
     <data>
         <record id="sii_dte_upload_xml_form" model="ir.ui.view">
-            <field name="name">SII WS Consult Wizard form</field>
+            <field name="name">Subir XML de Envío</field>
             <field name="model">sii.dte.upload_xml.wizard</field>
             <field name="arch" type="xml">
                 <form string="SII DTE Upload XML Wizard">
                     <group>
-                        <field name="xml_file"  filename="filename"/>
-                        <field name="filename" />
+                        <field name="inv" invisible="True"/>
+                        <field name="xml_file" filename="filename" required="True"/>
+                        <field name="filename" invisible="True"/>
                         <field name="action" widget="radio"/>
                     </group>
                     <footer>
@@ -19,5 +20,23 @@
                 </form>
             </field>
         </record>
+        <record id="action_upload_xml" model="ir.actions.act_window">
+          <field name="name">Subir XML De Envío</field>
+          <field name="res_model">sii.dte.upload_xml.wizard</field>
+          <field name="view_type">form</field>
+          <field name="view_mode">form</field>
+          <field name="view_id" ref="sii_dte_upload_xml_form"/>
+          <field name="target">new</field>
+        </record>
+        <menuitem
+         id="menu_upload_xml"
+         action="action_upload_xml"
+         parent="purchase.menu_purchase_control"
+         sequence="14"/>
+         <menuitem
+           action="action_upload_xml"
+           id="menu_action_account_upload_xml"
+           parent="account.menu_finance_payables"
+           sequence="4"/>
     </data>
 </openerp>

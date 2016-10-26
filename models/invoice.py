@@ -475,9 +475,12 @@ version="1.0">
         return signature_data
 
     def get_digital_signature(self, comp_id):
-        obj = user = self[0].responsable_envio
+        obj = user = False
+        if 'responsable_envio' in self and self._ids:
+            obj = user = self[0].responsable_envio
         if not obj:
             obj = user = self.env.user
+        _logger.info(obj.name)
         if not obj.cert:
             obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
             if not obj or not obj.cert:
@@ -718,6 +721,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         string=_('SII Barcode Image'),
         help='SII Barcode Image in PDF417 format')
 
+    sii_receipt = fields.Text(
+        string='SII Mensaje de recepción',
+        copy=False)
     sii_message = fields.Text(
         string='SII Message',
         copy=False)
@@ -849,11 +855,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     def _emisor(self):
         Emisor= collections.OrderedDict()
-        if not self.company_id.vat:
-            raise UserError("Debe ingresar el rut del emisor")
         Emisor['RUTEmisor'] = self.format_vat(self.company_id.vat)
-        if not self.company_id.activity_description:
-            raise UserError("Debe ingresar la glosa descriptiva del giro del emisor")
         if self._es_boleta():
             Emisor['RznSocEmisor'] = self.company_id.partner_id.name
             Emisor['GiroEmisor'] = self._acortar_str(self.company_id.activity_description.name, 80)
@@ -1231,7 +1233,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         _server = SOAPProxy(url, ns)
         rut = self.format_vat(self.company_id.vat)
         respuesta = _server.getEstUp(rut[:8], str(rut[-1]),track_id,token)
-        self.sii_message = respuesta
+        self.sii_receipt = respuesta
         resp = xmltodict.parse(respuesta)
         status = False
         if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == "-11":
@@ -1275,18 +1277,18 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     @api.multi
     def ask_for_dte_status(self):
-        #try:
-        signature_d = self.get_digital_signature_pem(
-            self.company_id)
-        seed = self.get_seed(self.company_id)
-        template_string = self.create_template_seed(seed)
-        seed_firmado = self.sign_seed(
-            template_string, signature_d['priv_key'],
-            signature_d['cert'])
-        token = self.get_token(seed_firmado,self.company_id)
-        #except:
-        #    _logger.info(connection_status)
-        #    raise UserError(connection_status)
+        try:
+            signature_d = self.get_digital_signature_pem(
+                self.company_id)
+            seed = self.get_seed(self.company_id)
+            template_string = self.create_template_seed(seed)
+            seed_firmado = self.sign_seed(
+                template_string, signature_d['priv_key'],
+                signature_d['cert'])
+            token = self.get_token(seed_firmado,self.company_id)
+        except:
+            _logger.info(connection_status)
+            raise UserError(connection_status)
         if not self.sii_send_ident:
             raise UserError('No se ha enviado aún el documento, aún está en cola de envío interna en odoo')
         if self.sii_result == 'Enviado':
@@ -1294,330 +1296,6 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             if self.sii_result != 'Proceso':
                 return status
         return self._get_dte_status(signature_d, token)
-
-    def _read_xml(self):
-        xml = xmltodict.parse(self.sii_xml_request)
-        return xml
-
-    def _check_digest_caratula(self):
-        xml = etree.fromstring(self.sii_xml_request.encode('UTF-8'))
-        string = etree.tostring(xml[0])
-        mess = etree.tostring(etree.fromstring(string), method="c14n")
-        our = base64.b64encode(self.digest(mess))
-        if our != xml[1][0][2][2].text:
-            return 2, 'Envio Rechazado - Error de Firma'
-        return 0, ''
-
-    def _check_digest_dte(self, dte):
-        xml = etree.fromstring(self.sii_xml_request.encode('UTF-8'))
-        for d in xml[0]:
-            if d != xml[0][0] and d[0][0][0][0].text == dte['Encabezado']['IdDoc']['TipoDTE'] and d[0][0][0][1].text == dte['Encabezado']['IdDoc']['Folio']:
-                string = etree.tostring(d[0])
-                mess = etree.tostring(etree.fromstring(string), method="c14n").replace(' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"','')# el replace es necesario debido a que python lo agrega solo
-                our = base64.b64encode(self.digest(mess))
-                if our != d[1][0][2][2].text:
-                    return 1, 'DTE No Recibido - Error de Firma'
-        return 0, 'DTE Recibido OK'
-
-    def _validar_caratula(self, cara):
-        if not self.env['res.company'].search([('vat','like', cara['RutReceptor'].replace('-',''))]):#se usa like porque sii envía rut sin 0 adelante
-            return 3, 'Rut no corresponde a nuestra empresa'
-        partner_id = self.env['res.partner'].search([('vat','like', cara['RutEmisor'].replace('-',''))])
-        if not partner_id:
-            return 2, 'Rut no coincide con los registros'
-        try:
-            self.xml_validator(self.sii_xml_request.encode('UTF-8'), 'env')
-        except:
-            return 1, 'Envio Rechazado - Error de Schema'
-        #for SubTotDTE in cara['SubTotDTE']:
-        #    sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(SubTotDTE['TipoDTE']))])
-        #    if not sii_document_class:
-        #        return  99, 'Tipo de documento desconocido'
-        return 0, ''
-
-    def _validar(self, doc):
-        cara, glosa = self._validar_caratula(doc[0][0]['Caratula'])
-        if cara != 0:
-            return cara
-        return 0, ''
-
-    def _validar_dte(self, doc):
-        res = collections.OrderedDict()
-        res['TipoDTE'] = doc['Encabezado']['IdDoc']['TipoDTE']
-        res['Folio'] = doc['Encabezado']['IdDoc']['Folio']
-        res['FchEmis'] = doc['Encabezado']['IdDoc']['FchEmis']
-        res['RUTEmisor'] = doc['Encabezado']['Emisor']['RUTEmisor']
-        res['RUTRecep'] = doc['Encabezado']['Receptor']['RUTRecep']
-        res['MntTotal'] = doc['Encabezado']['Totales']['MntTotal']
-        partner_id = self.env['res.partner'].search([('vat','like', doc['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
-        sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(doc['Encabezado']['IdDoc']['TipoDTE']))])
-        res['EstadoRecepDTE'] = 0
-        res['RecepDTEGlosa'] = 'DTE Recibido OK'
-        res['EstadoRecepDTE'], res['RecepDTEGlosa'] = self._check_digest_dte(doc)
-        if not sii_document_class:
-            res['EstadoRecepDTE'] = 99
-            res['RecepDTEGlosa'] = 'Tipo de documento desconocido'
-            return res
-        docu = self.env['account.invoice'].search([('reference','=', doc['Encabezado']['IdDoc']['Folio']),('partner_id','=',partner_id.id),('sii_document_class_id','=',sii_document_class.id)])
-        if not docu or doc['Encabezado']['Receptor']['RUTRecep'] != self.format_vat(docu.company_id.vat):
-            res['EstadoRecepDTE'] = 3
-            res['RecepDTEGlosa'] = 'Rut no corresponde a la empresa esperada'
-            return res
-        if docu.reference != doc['Encabezado']['IdDoc']['Folio']:
-            res['EstadoRecepDTE'] = 99
-            res['RecepDTEGlosa'] = 'Folio desconocido'
-        return res
-
-    def _validar_dtes(self):
-        envio = self._read_xml()
-        size = len(envio['EnvioDTE']['SetDTE']['DTE'])
-        if size == 1:
-            res = {'RecepcionDTE' : self._validar_dte(envio['EnvioDTE']['SetDTE']['DTE']['Documento'])}
-        else:
-            res = []
-            for doc in envio['EnvioDTE']['SetDTE']['DTE']:
-                res.extend([ {'RecepcionDTE' : self._validar_dte(doc['Documento'])} ])
-        return res
-
-    def _caratula_respuesta(self, RutResponde, IdRespuesta="1", NroDetalles=0):
-        caratula = collections.OrderedDict()
-        caratula['RutResponde'] = RutResponde
-        caratula['RutRecibe'] = self.format_vat( self.partner_id.vat)
-        caratula['IdRespuesta'] = IdRespuesta
-        caratula['NroDetalles'] = NroDetalles
-        caratula['NmbContacto'] = self.env.user.partner_id.name
-        caratula['FonoContacto'] = self.env.user.partner_id.phone
-        caratula['MailContacto'] = self.env.user.partner_id.email
-        caratula['TmstFirmaResp'] = self.time_stamp()
-        return caratula
-
-    def _receipt(self, IdRespuesta):
-        envio = self._read_xml()
-        xml = etree.fromstring(self.sii_xml_request.encode('UTF-8'))
-        resp = collections.OrderedDict()
-        resp['NmbEnvio'] = self.sii_send_file_name
-        resp['FchRecep'] = self.time_stamp()
-        resp['CodEnvio'] = self._acortar_str(IdRespuesta + self.number[15:], 10)
-        resp['EnvioDTEID'] = xml[0].attrib['ID']
-        resp['Digest'] = xml[1][0][2][2].text
-        EstadoRecepEnv, RecepEnvGlosa = self._validar_caratula(envio['EnvioDTE']['SetDTE']['Caratula'])
-        if EstadoRecepEnv == 0:
-            EstadoRecepEnv, RecepEnvGlosa = self._check_digest_caratula()
-        resp['RutEmisor'] = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
-        resp['RutReceptor'] = envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor']
-        resp['EstadoRecepEnv'] = EstadoRecepEnv
-        resp['RecepEnvGlosa'] = RecepEnvGlosa
-        resp['NroDTE'] = len(envio['EnvioDTE']['SetDTE']['DTE'])
-        resp['item'] = self._validar_dtes()
-        return resp
-
-    def _RecepcionEnvio(self, Caratula, resultado):
-        resp='''
-        <RespuestaDTE version="1.0" xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte RespuestaEnvioDTE_v10.xsd" >
-            <Resultado ID="Odoo_resp">
-                <Caratula version="1.0">
-                    {0}
-                </Caratula>
-                    {1}
-            </Resultado>
-        </RespuestaDTE>'''.format(Caratula,resultado)
-        return resp
-
-    def do_receipt_deliver(self):
-        id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
-        IdRespuesta = self.env['ir.sequence'].browse(id_seq).next_by_id()
-        for inv in self:
-            if inv.estado_recep_dte not in ['0']:
-                try:
-                    signature_d = self.get_digital_signature(inv.company_id)
-                except:
-                    raise UserError(_('''There is no Signer Person with an \
-                authorized signature for you in the system. Please make sure that \
-                'user_signature_key' module has been installed and enable a digital \
-                signature, for you or make the signer to authorize you to use his \
-                signature.'''))
-                certp = signature_d['cert'].replace(
-                    BC, '').replace(EC, '').replace('\n', '')
-                recep = inv._receipt(IdRespuesta)
-                envio = self._read_xml()
-                NroDetalles = len(envio['EnvioDTE']['SetDTE']['DTE'])
-        dicttoxml.set_debug(False)
-        resp_dtes = dicttoxml.dicttoxml(recep, root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
-        RecepcionEnvio = '''<RecepcionEnvio>
-                    {0}
-                    </RecepcionEnvio>
-                    '''.format(resp_dtes)
-        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.format_vat(inv.company_id.vat), IdRespuesta, NroDetalles), root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
-        resp = self._RecepcionEnvio(caratula, RecepcionEnvio )
-
-        respuesta = self.sign_full_xml(
-            resp, signature_d['priv_key'], certp,
-            'Odoo_resp', 'env_resp')
-        raise UserError(respuesta)
-
-    def _validar_dte_en_envio(self, doc, IdRespuesta):
-        res = collections.OrderedDict()
-        res['TipoDTE'] = doc['Encabezado']['IdDoc']['TipoDTE']
-        res['Folio'] = doc['Encabezado']['IdDoc']['Folio']
-        res['FchEmis'] = doc['Encabezado']['IdDoc']['FchEmis']
-        res['RUTEmisor'] = doc['Encabezado']['Emisor']['RUTEmisor']
-        res['RUTRecep'] = doc['Encabezado']['Receptor']['RUTRecep']
-        res['MntTotal'] = doc['Encabezado']['Totales']['MntTotal']
-        res['CodEnvio'] = str(IdRespuesta) + str(doc['Encabezado']['IdDoc']['Folio'])
-        partner_id = self.env['res.partner'].search([('vat','like', doc['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
-        sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(doc['Encabezado']['IdDoc']['TipoDTE']))])
-        res['EstadoDTE'] = 0
-        res['EstadoDTEGlosa'] = 'DTE Aceptado OK'
-        if not sii_document_class:
-            res['EstadoDTE'] = 2
-            res['EstadoDTEGlosa'] = 'DTE Rechazado'
-            res['CodRchDsc'] = "-1"
-            return res
-
-        if doc['Encabezado']['Receptor']['RUTRecep'] != self.company_id.partner_id.document_number:
-            res['EstadoDTE'] = 2
-            res['EstadoDTEGlosa'] = 'DTE Rechazado'
-            res['CodRchDsc'] = "-1"
-            return res
-
-        if int(round(self.amount_total)) != int(round(doc['Encabezado']['Totales']['MntTotal'])):
-            res['EstadoDTE'] = 2
-            res['EstadoDTEGlosa'] = 'DTE Rechazado'
-            res['CodRchDsc'] = "-1"
-        #@TODO hacer más Validaciones, como por ejemplo, valores por línea
-        return res
-
-    def _resultado(self, IdRespuesta):
-        envio = self._read_xml()
-        size = len(envio['EnvioDTE']['SetDTE']['DTE'])
-        if size == 1:
-            return {'ResultadoDTE' : self._validar_dte_en_envio(envio['EnvioDTE']['SetDTE']['DTE']['Documento'],IdRespuesta)}
-        else:
-            for doc in envio['EnvioDTE']['SetDTE']['DTE']:
-                if doc['Documento']['Encabezado']['IdDoc']['Folio'] == self.reference:
-                    return {'ResultadoDTE' : self._validar_dte_en_envio(doc['Documento'], IdRespuesta)}
-        return False
-
-    def _ResultadoDTE(self, Caratula, resultado):
-        resp='''
-        <RespuestaDTE version="1.0" xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte RespuestaEnvioDTE_v10.xsd" >
-            <Resultado ID="Odoo_resp">
-                <Caratula version="1.0">
-                    {0}
-                </Caratula>
-                    {1}
-            </Resultado>
-        </RespuestaDTE>'''.format(Caratula,resultado)
-
-        return resp
-
-    def do_validar_comercial(self):
-        id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
-        IdRespuesta = self.env['ir.sequence'].browse(id_seq).next_by_id()
-        for inv in self:
-            if inv.estado_recep_dte not in ['0']:
-                try:
-                    signature_d = self.get_digital_signature(inv.company_id)
-                except:
-                    raise UserError(_('''There is no Signer Person with an \
-                authorized signature for you in the system. Please make sure that \
-                'user_signature_key' module has been installed and enable a digital \
-                signature, for you or make the signer to authorize you to use his \
-                signature.'''))
-                certp = signature_d['cert'].replace(
-                    BC, '').replace(EC, '').replace('\n', '')
-                dte = inv._resultado(IdRespuesta)
-                envio = self._read_xml()
-                NroDetalles = len(envio['EnvioDTE']['SetDTE']['DTE'])
-        dicttoxml.set_debug(False)
-        ResultadoDTE = dicttoxml.dicttoxml(dte, root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
-
-        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.format_vat(inv.company_id.vat), IdRespuesta, NroDetalles), root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
-        resp = self._ResultadoDTE(caratula, ResultadoDTE  )
-
-        respuesta = self.sign_full_xml(
-            resp, signature_d['priv_key'], certp,
-            'Odoo_resp', 'env_resp')
-        raise UserError(respuesta)
-
-    def _recep(self, inv, RutFirma, key, cert):
-        receipt = collections.OrderedDict()
-        receipt['TipoDoc'] = inv.sii_document_class_id.sii_code
-        receipt['Folio'] = int(inv.reference)
-        receipt['FchEmis'] = inv.date_invoice
-        receipt['RUTEmisor'] = self.format_vat(inv.partner_id.vat)
-        receipt['RUTRecep'] = self.format_vat(inv.company_id.vat)
-        receipt['MntTotal'] = int(round(inv.amount_total))
-        receipt['Recinto'] = inv.company_id.street
-        receipt['RutFirma'] = RutFirma
-        receipt['Declaracion'] = 'El acuse de recibo que se declara en este acto, de acuerdo a lo dispuesto en la letra b) del Art. 4, y la letra c) del Art. 5 de la Ley 19.983, acredita que la entrega de mercaderias o servicio(s) prestado(s) ha(n) sido recibido(s).'
-        receipt['TmstFirmaRecibo'] = self.time_stamp()
-        id = "T"+str(inv.sii_document_class_id.sii_code)+"F"+str(inv.get_folio())
-        doc = '''
-        <Recibo version="1.0" xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte Recibos_v10.xsd" >
-            <DocumentoRecibo ID="{0}" >
-            {1}
-            </DocumentoRecibo>
-        </Recibo>
-        '''.format(id, dicttoxml.dicttoxml(receipt, root=False, attr_type=False))
-        return self.sign_full_xml(
-            doc, key, cert,
-            'Recibo', 'recep')
-
-    def _envio_recep(self,caratula, recep):
-        xml = '''<?xml version="1.0" encoding="ISO-8859-1"?>
-<EnvioRecibos xmlns='http://www.sii.cl/SiiDte' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='http://www.sii.cl/SiiDte EnvioRecibos_v10.xsd' version="1.0">
-    <SetRecibos ID="SetDteRecibidos">
-        <Caratula version="1.0">
-        {0}
-        </Caratula>
-        {1}
-    </SetRecibos>
-</EnvioRecibos>'''.format(caratula, recep)
-        return xml
-
-    def _caratula_recep(self, RutResponde):
-        caratula = collections.OrderedDict()
-        caratula['RutResponde'] = RutResponde
-        caratula['RutRecibe'] = self.format_vat( self.partner_id.vat)
-        caratula['NmbContacto'] = self.env.user.partner_id.name
-        caratula['FonoContacto'] = self.env.user.partner_id.phone
-        caratula['MailContacto'] = self.env.user.partner_id.email
-        caratula['TmstFirmaEnv'] = self.time_stamp()
-        return caratula
-
-    @api.multi
-    def do_receipt(self):
-        receipts = ""
-        for inv in self:
-            if inv.estado_recep_dte not in ['0']:
-                try:
-                    signature_d = self.get_digital_signature(inv.company_id)
-                except:
-                    raise UserError(_('''There is no Signer Person with an \
-                authorized signature for you in the system. Please make sure that \
-                'user_signature_key' module has been installed and enable a digital \
-                signature, for you or make the signer to authorize you to use his \
-                signature.'''))
-                certp = signature_d['cert'].replace(
-                    BC, '').replace(EC, '').replace('\n', '')
-                receipts += "\n"+self._recep(inv, signature_d['subject_serial_number'],signature_d['priv_key'], certp)
-        caratula = dicttoxml.dicttoxml(self._caratula_recep(self.format_vat(inv.company_id.vat)), root=False, attr_type=False)
-        envio_dte = self._envio_recep(caratula, receipts)
-        envio_dte = self.sign_full_xml(
-            envio_dte, signature_d['priv_key'], certp,
-            'SetDteRecibidos', 'env_recep')
-        raise UserError(envio_dte)
-        #result = self.send_xml_file(envio_dte, file_name, company_id)
-        from openerp.addons.web.controllers.main import serialize_exception, content_disposition
-
-        headers = [
-            ('Content-Type', 'application/xml'),
-            ('Content-Disposition', content_disposition(inv.sii_send_file_name)),
-            ('charset', 'utf-8'),
-        ]
-        return request.make_response(
-                envio_dte, headers=headers, cookies=None)
 
     @api.multi
     def wizard_upload(self):
