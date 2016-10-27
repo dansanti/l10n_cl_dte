@@ -214,7 +214,7 @@
                                  </td>
                                 </tr>
                                <tr t-foreach="o.tax_line_ids" t-as="t" style="max-height:11px; font-size:12px !important;">
-                                  <td><span t-field="t.name"/></td>
+                                  <td><span t-field="t.description"/></td>
                                   <td class="text-right">
                                       <span t-esc="t.amount if t.amount > 0 else t.base" t-esc-options='{"widget": "monetary", "display_currency": "o.currency_id"}'/>
                                   </td>
