@@ -75,37 +75,38 @@
                         <tbody>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Señor (es):</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:450px;max-width:450px;"><span t-field="o.partner_id.name"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.partner_id.name"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Fecha:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><t t-if="'date_invoice' in o and o.date_invoice"><span t-field="o.date_invoice"/></t></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>RUT:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:450px;max-width:450px;"><span t-field="o.partner_id.document_number"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.partner_id.document_number"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Comuna:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><span t-field="o.partner_id.city_id.name"/></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Domicilio:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:450px;max-width:450px;"><span t-field="o.partner_id.street"/><span t-field="o.partner_id.street2"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.partner_id.street"/><span t-field="o.partner_id.street2"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Ciudad:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><span t-field="o.partner_id.city"/></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Giro:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:450px;max-width:450px;"><span t-field="o.activity_description.name"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.activity_description.name"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Condición de Pago:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><span t-if="'payment_term_id' in o and o.payment_term_id" t-field="o.payment_term_id.name"/></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Contacto:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:450px;max-width:450px;"><t t-if="'contact_id' in o and o.contact_id"><span t-field="o.contact_id.name"/></t></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><t t-if="'contact_id' in o and o.contact_id"><span t-field="o.contact_id.name"/></t></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Vencimiento:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><span t-field="o.date_due"/></td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
+                  <div style="min-height:420px; max-height:420px; padding-top:5px;">
                     <t t-if="o.referencias">
                       <span  style="font-size:8px;"> Documento de Referencia</span>
                       <div class="row" style="border: 2px solid black; min-height:20px;" name="reference">
@@ -127,16 +128,16 @@
                           <tbody t-if="'referencias' in o and o.referencias">
                             <t t-foreach="o.referencias" t-as="l">
                                 <tr style="max-height:8px; font-size:10px !important;">
-                                  <td style="border-top:0px !important;padding:2px !important;">
+                                  <td style="border-top:0px !important;padding:0px !important;">
                                         <span t-if="l.origen" t-field="l.origen"/>
                                     </td>
-                                  <td style="border-top:0px !important;padding:2px !important;">
+                                  <td style="border-top:0px !important;padding:0px !important;">
                                       <span t-if="l.sii_referencia_TpoDocRef" t-field="l.sii_referencia_TpoDocRef.name"/>
                                   </td>
-                                  <td name="reference" style="border-top:0px !important;padding:2px !important;">
+                                  <td name="reference" style="border-top:0px !important;padding:0px !important;">
                                       <span t-if="l.motivo" t-field="l.motivo"/>
                                   </td>
-                                  <td style="border-top:0px !important;padding:2px !important;">
+                                  <td style="border-top:0px !important;padding:0px !important;">
                                     <span t-if="l.fecha_documento" t-field="l.fecha_documento"/>
                                   </td>
                               </tr>
@@ -147,7 +148,7 @@
                   </t>
                   <!-- Is there a discount on at least one line? -->
                    <t t-set="display_discount" t-value="any([l.discount for l in o.invoice_line_ids])"/>
-                  <div style="min-height:480px; max-height:480px; padding-top:5px;">
+
                    <table class="table table-condensed">
                        <thead >
                            <tr style="max-height:8px; line-height:12px; font-size:12px !important; padding:0px;">
@@ -168,7 +169,7 @@
                                <td style="max-height:8px;line-height:10px !important;"><span t-field="l.product_id.default_code"/></td>
                                <td style="max-height:8px;line-height:10px !important;"><span t-field="l.product_id.name"/></td>
                                <td class="text-left" style="max-height:8px;line-height:10px !important;">
-                                   <span t-field="l.price_unit" t-field-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: &quot;o.currency_id&quot;}"/>
+                                   <span t-field="l.price_unit" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
                                </td>
                                <td t-if="display_discount" class="text-right" groups="sale.group_discount_per_so_line" style="max-height:8px;line-height:10px !important;">
                                    <span t-field="l.discount"/>
@@ -176,51 +177,11 @@
                                <td class="text-left" style="max-height:8px;line-height:10px !important;">
                                     <span t-field="l.price_subtotal"
                                          t-field-options='{"widget": "monetary", "display_currency": "o.currency_id"}'/>
-
                                </td>
                            </tr>
                        </tbody>
                    </table>
-                   <div class="row">
-                       <div class="col-xs-4 pull-right">
-                           <table class="table table-condensed">
-                               <tr t-if="o.global_discount >0" class="border-black" style="max-height:11px; font-size:12px !important;">
-                                 <td><strong>Descuento</strong></td>
-                                 <td class="text-right">
-                                     <span t-field="o.global_discount" t-field-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: &quot;o.currency_id&quot;}"/>
-                                 </td>
-                                </tr>
-                                <tr style="max-height:11px; font-size:12px !important;">
-                                   <td><strong>Subtotal</strong></td>
-                                   <td class="text-right">
-                                       <span t-field="o.amount_untaxed" t-field-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: &quot;o.currency_id&quot;}"/>
-                                   </td>
-                                </tr>
-                                <tr t-foreach="o.tax_line_ids" t-as="t" style="max-height:11px; font-size:12px !important;">
-                                   <td><span t-field="t.name"/></td>
-                                   <td class="text-right">
-                                     <span t-field="t.amount" t-field-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: &quot;o.currency_id&quot;}"/>
-                                   </td>
-                                </tr>
-                                <!--<t t-foreach="o._get_tax_amount_by_group()" t-as="amount_by_group">
-                                   <tr>
-                                       <td><span t-esc="amount_by_group[0]"/></td>
-                                       <td class="text-right">
-                                           <span t-esc="amount_by_group[1]"/>
-                                       </td>
-                                   </tr>
-                                </t>-->
-                                <tr class="border-black" style="max-height:12px; font-size:12px !important;">
-                                   <td><strong>Total</strong></td>
-                                   <td class="text-right">
-                                        <span t-field="o.amount_total" t-field-options="{&quot;widget&quot;: &quot;monetary&quot;, &quot;display_currency&quot;: &quot;o.currency_id&quot;}"/>
-                                   </td>
-                                </tr>
-                           </table>
-                       </div>
-                   </div>
                   </div>
-
                    <p t-if="o.comment">
                        <strong>Comment:</strong>
                        <span t-field="o.comment"/>
@@ -238,13 +199,43 @@
                             </p>
                         </div>
                       </div>
-                      <div class="col-xs-7">
-                        <div class="col-xs-12" style="border: 1px solid black;height:17px;font-size:14px !important;">
+                      <div class="col-xs-4 pull-right">
+                          <table class="table table-condensed">
+                               <tr style="max-height:11px; font-size:12px !important;" name="subtotal">
+                                  <td><strong>Subtotal</strong></td>
+                                  <td class="text-right">
+                                      <span t-field="o.amount_untaxed" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                  </td>
+                               </tr>
+                               <tr name="discount" t-if="display_discount" class="border-black" style="max-height:11px; font-size:12px !important;">
+                                 <td><strong>Descuento</strong></td>
+                                 <td class="text-right">
+                                     <span t-esc="o.getTotalDiscount()" t-esc-options='{"widget": "monetary", "display_currency": "o.currency_id"}'/>
+                                 </td>
+                                </tr>
+                               <tr t-foreach="o.tax_line_ids" t-as="t" style="max-height:11px; font-size:12px !important;">
+                                  <td><span t-field="t.name"/></td>
+                                  <td class="text-right">
+                                      <span t-esc="t.amount if t.amount > 0 else t.base" t-esc-options='{"widget": "monetary", "display_currency": "o.currency_id"}'/>
+                                  </td>
+                               </tr>
+                               <tr class="border-black" style="max-height:12px; font-size:12px !important;">
+                                  <td><strong>Total</strong></td>
+                                  <td class="text-right">
+                                       <span t-field="o.amount_total" t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                  </td>
+                               </tr>
+                          </table>
+                      </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-xs-12" style="border: 1px solid black;height:20px;font-size:15px !important;">
                           <div class="col-xs-4">
                               <strong>Nombre:</strong>
                           </div>
                         </div>
-                        <div class="col-xs-12" style="border: 1px solid black;height:17px;font-size:14px !important;">
+                        <div class="col-xs-12" style="border: 1px solid black;height:20px;font-size:15px !important;">
                           <div class="col-xs-7">
                               <strong>R.U.T.:</strong>
                           </div>
@@ -252,7 +243,7 @@
                               <strong>FECHA:</strong>
                           </div>
                         </div>
-                        <div class="col-xs-12" style="border: 1px solid black;height:17px; font-size:14px !important;">
+                        <div class="col-xs-12" style="border: 1px solid black;height:20px; font-size:15px !important;">
                           <div class="col-xs-7">
                               <strong>RECINTO:</strong>
                           </div>
@@ -261,18 +252,15 @@
                           </div>
                         </div>
                         <div class="col-xs-12" style="border: 1px solid black;">
-                          <p style="font-size:6px">
+                          <p style="font-size:8px">
                             "El acuse de recibo que se declara en este acto, de acuerdo a lo dispuesto en la letra b) del Artículo 4°, y la letra c) del Artículo 5° de la Ley 19.983, acredita que la entrega de mercaderías o servicio(s) prestado(s) ha(n) sido recibido(s)"
                           </p>
                         </div>
-                      </div>
                    </div>
-
+                   <div class="row">
+                     <h6 class="pull-right" t-if="cedible"> CEDIBLE</h6>
+                   </div>
                 </div>
-                <div class="footer">
-                  <h6 class="pull-right" t-if="cedible"> CEDIBLE</h6>
-                </div>
-
           </template>
 
           <template id="dte_invoice" inherit_id="account.report_invoice">

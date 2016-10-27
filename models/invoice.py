@@ -1334,3 +1334,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         """ Print Cedible
         """
         return self.env['report'].get_action(self, 'l10n_cl_dte.report_ticket')
+
+    @api.multi
+    def getTotalDiscount(self):
+        total_discount = 0
+        for l in self.invoice_line_ids:
+            total_discount +=  (((l.discount or 0.00) /100) * l.price_unit * l.quantity)
+        _logger.info(total_discount)
+        return self.currency_id.round(total_discount)
