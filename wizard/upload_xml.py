@@ -434,12 +434,44 @@ class UploadXMLWizard(models.TransientModel):
             'name': data['NmbItem'],
             'lst_price': float(data['PrcItem']),
         })
+        if 'CdgItem' in data:
+            if 'TpoCodigo' in data['CdgItem']:
+                if line['CdgItem']['TpoCodigo'] == 'ean13':
+                    product_id.barcode = data['CdgItem']['VlrCodigo']
+                else:
+                    product_id.default_code = data['CdgItem']['VlrCodigo']
+            else:
+                for c in data['CdgItem']:
+                    if c['TpoCodigo'] == 'ean13':
+                        product_id.barcode = c['VlrCodigo']
+                    else:
+                        product_id.default_code = c['VlrCodigo']
+        return product_id
+
+    def _buscar_producto(self, line):
+        query = product_id = False
+        if 'CdgItem' in line:
+            if 'VlrCodigo' in line['CdgItem']:
+                if line['CdgItem']['TpoCodigo'] == 'ean13':
+                    query = [('barcode','=',line['CdgItem']['VlrCodigo'])]
+                else:
+                    query = [('default_code','=',line['CdgItem']['VlrCodigo'])]
+            else:
+                for c in line['CdgItem']:
+                    if line['CdgItem']['TpoCodigo'] == 'ean13':
+                        query = [('barcode','=',c['VlrCodigo'])]
+                    else:
+                        query = [('default_code','=',c['VlrCodigo'])]
+        if not query:
+            query = [('name','=',line['NmbItem'])]
+        product_id = self.env['product.product'].search(query)
+        if not product_id:
+            product_id = self._create_prod(line)
         return product_id
 
     def _prepare_line(self, line, journal, type):
-        product_id = self.env['product.product'].search([('name','=',line['NmbItem'])])
-        if not product_id:
-            product_id = self._create_prod(line)
+        product_id = self._buscar_producto(line)
+
         account_id = journal.default_debit_account_id.id
         if type in ('out_invoice', 'in_refund'):
                 account_id = journal.default_credit_account_id.id
@@ -530,12 +562,28 @@ class UploadXMLWizard(models.TransientModel):
     def do_create_inv(self):
         envio = self._read_xml()
         resp = self.do_receipt_deliver()
-        for dte in envio['EnvioDTE']['SetDTE']['DTE']:
-            company_id = self.env['res.company'].search([('vat','like', dte['Documento']['Encabezado']['Receptor']['RUTRecep'].replace('-',''))])
+        if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
+            dte = envio['EnvioDTE']['SetDTE']['DTE']
+            company_id = self.env['res.company'].search(
+                [
+                    ('vat','like', dte['Documento']['Encabezado']['Receptor']['RUTRecep'].replace('-','')),
+                ],
+                limit=1)
             if company_id:
                 self.inv = self._create_inv(dte['Documento'], company_id)
                 if self.inv:
                     self.inv.sii_xml_response = resp['warning']['message']
+        else:
+            for dte in envio['EnvioDTE']['SetDTE']['DTE']:
+                company_id = self.env['res.company'].search(
+                    [
+                        ('vat','like', dte['Documento']['Encabezado']['Receptor']['RUTRecep'].replace('-','')),
+                    ],
+                    limit=1)
+                if company_id:
+                    self.inv = self._create_inv(dte['Documento'], company_id)
+                    if self.inv:
+                        self.inv.sii_xml_response = resp['warning']['message']
         if not self.inv:
             raise UserError('El archivo XML no contiene documentos para alguna empresa registrada en Odoo, o ya ha sido procesado anteriormente ')
         return resp
