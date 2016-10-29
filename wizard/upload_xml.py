@@ -65,7 +65,13 @@ class UploadXMLWizard(models.TransientModel):
         return xml
 
     def _check_digest_caratula(self):
-        xml = etree.fromstring(base64.b64decode(self.xml_file or self.inv.sii_xml_request).encode('UTF-8'))
+        if self.xml_file:
+            string = base64.b64decode(self.xml_file).encode('UTF-8')
+        elif self.inv and self.inv.sii_xml_request:
+            string = self.inv.sii_xml_request.encode('UTF-8')
+        else :
+            raise UserError('No se ha entregado un string o archivo xml')
+        xml = etree.fromstring(string)
         string = etree.tostring(xml[0])
         mess = etree.tostring(etree.fromstring(string), method="c14n")
         our = base64.b64encode(self.inv.digest(mess))
@@ -79,25 +85,45 @@ class UploadXMLWizard(models.TransientModel):
         else:
             string = self.inv.sii_xml_request.encode('utf-8')
         xml = etree.fromstring(string)
-        for d in xml[0]:
-            if d != xml[0][0] and d[0][0][0][0].text == dte['Encabezado']['IdDoc']['TipoDTE'] and d[0][0][0][1].text == dte['Encabezado']['IdDoc']['Folio']:
-                string = etree.tostring(d[0])
-                mess = etree.tostring(etree.fromstring(string), method="c14n").replace(' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"','')# el replace es necesario debido a que python lo agrega solo
-                our = base64.b64encode(self.inv.digest(mess))
-                if our != d[1][0][2][2].text:
-                    return 1, 'DTE No Recibido - Error de Firma'
+        if xml[0][0].tag == "{http://www.sii.cl/SiiDte}Caratula":
+            d = xml[0][1]
+            i = 0
+            while d[i].tag != '{http://www.sii.cl/SiiDte}Documento':
+                i +=1
+            string = etree.tostring(d[i])#doc
+            mess = etree.tostring(etree.fromstring(string), method="c14n").replace(' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"','')# el replace es necesario debido a que python lo agrega solo
+            our = base64.b64encode(self.inv.digest(mess))
+            (d[(i+1)][0][2][2].text)
+            if our != d[(i+1)][0][2][2].text:
+                return 1, 'DTE No Recibido - Error de Firma'
+        else:
+            for d in xml[0]:
+                if d != xml[0][0] and d[0][0][0][0].text == dte['Encabezado']['IdDoc']['TipoDTE'] and d[0][0][0][1].text == dte['Encabezado']['IdDoc']['Folio']:
+                    while d[i].tag != '{http://www.sii.cl/SiiDte}Documento':
+                        i +=1
+                    string = etree.tostring(d[i])#doc
+                    mess = etree.tostring(etree.fromstring(string), method="c14n").replace(' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"','')# el replace es necesario debido a que python lo agrega solo
+                    our = base64.b64encode(self.inv.digest(mess))
+                    if our != d[(i+1)][0][2][2].text:
+                        return 1, 'DTE No Recibido - Error de Firma'
         return 0, 'DTE Recibido OK'
 
     def _validar_caratula(self, cara):
         if not self.env['res.company'].search([('vat','like', cara['RutReceptor'].replace('-',''))]):#se usa like porque sii envía rut sin 0 adelante
             return 3, 'Rut no corresponde a nuestra empresa'
         partner_id = self.env['res.partner'].search([('vat','like', cara['RutEmisor'].replace('-',''))])
-        if not partner_id:
+        if not partner_id and not self.inv:
             return 2, 'Rut no coincide con los registros'
         try:
-            self.inv.xml_validator(base64.b64decode(self.xml_file).encode('UTF-8'), 'env')
+            if self.xml_file:
+                string = base64.b64decode(self.xml_file).encode('UTF-8')
+            elif self.inv and self.inv.sii_xml_request:
+                string = self.inv.sii_xml_request.encode('UTF-8')
+            else :
+                raise UserError('No se ha entregado un string o archivo xml')
+            self.inv.xml_validator(string, 'env')
         except:
-            return 1, 'Envio Rechazado - Error de Schema'
+               return 1, 'Envio Rechazado - Error de Schema'
         #for SubTotDTE in cara['SubTotDTE']:
         #    sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(SubTotDTE['TipoDTE']))])
         #    if not sii_document_class:
@@ -164,7 +190,13 @@ class UploadXMLWizard(models.TransientModel):
 
     def _receipt(self, IdRespuesta):
         envio = self._read_xml()
-        xml = etree.fromstring(base64.b64decode(self.xml_file).encode('UTF-8') or self.inv.sii_xml_request.encode('utf-8'))
+        if self.xml_file:
+            string = base64.b64decode(self.xml_file).encode('UTF-8')
+        elif self.inv:
+            string = self.inv.sii_xml_request.encode('utf-8')
+        else:
+            raise UserError('No hay registro de archivo de envío, por favor seleccione el archivo e envío')
+        xml = etree.fromstring(string)
         resp = collections.OrderedDict()
         resp['NmbEnvio'] = self.filename
         resp['FchRecep'] = self.inv.time_stamp()
@@ -199,7 +231,11 @@ class UploadXMLWizard(models.TransientModel):
 
     def do_receipt_deliver(self):
         envio = self._read_xml()
-        company_id = self.env['res.company'].search([('vat','like', envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor'].replace('-',''))])
+        company_id = self.env['res.company'].search(
+            [
+                ('vat','like', envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor'].replace('-',''))
+            ],
+            limit=1)
         id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
         IdRespuesta = self.env['ir.sequence'].browse(id_seq).next_by_id()
         try:
@@ -318,7 +354,6 @@ class UploadXMLWizard(models.TransientModel):
         caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.env['account.invoice'].format_vat(inv.company_id.vat), RutRecibe, IdRespuesta, NroDetalles),
                                        root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
         resp = self._ResultadoDTE(caratula, ResultadoDTE)
-        _logger.info(resp)
         respuesta = self.inv.sign_full_xml(
             resp, signature_d['priv_key'], certp,
             'Odoo_resp', 'env_resp')
