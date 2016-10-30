@@ -8,10 +8,12 @@
             <field name="arch" type="xml">
                <button name="invoice_print" position="after">
                 <button string="Imprimir Cedible" type="object" name="print_cedible" />
-                <button string="Imprimir en Formato Ticket" type="object" name="print_ticket" />
               </button>
                 <!-- TODO ver si es necesario cambiar este contexto o no -->
                 <!-- TODO cambiar color del boton de envio una vez enviado -->
+                <field name="journal_id" position="after">
+                  <field name="ticket" />
+                </field>
                 <field name="invoice_line_ids" position="attributes">
                     <attribute name="context">{'partner_id': partner_id, 'price_type': context.get('price_type') or False, 'type': type}" name="invoice_line_ids" on_change="onchange_invoice_line(invoice_line_ids)</attribute>
                 </field>

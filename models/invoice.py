@@ -768,6 +768,10 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     estado_recep_glosa = fields.Char(string="Información Adicional del Estado de Recepción")
     sii_send_file_name = fields.Char(string="Send File Name")
     responsable_envio = fields.Many2one('res.users')
+    ticket = fields.Boolean(string="Formato Ticket",
+            default=False,
+            readonly=True,
+            states={'draft': [('readonly', False)]})
 
     @api.multi
     def get_related_invoices_data(self):
@@ -834,8 +838,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         IdDoc['FchEmis'] = self.date_invoice
         if self._es_boleta():
             IdDoc['IndServicio'] = 3 #@TODO agregar las otras opciones a la fichade producto servicio
-        if not self._es_boleta():
-            IdDoc['TpoImpresion'] = "N" #@TODO crear opcion de ticket
+        if self.ticket:
+            IdDoc['TpoImpresion'] = "T"
         #if self.tipo_servicio:
         #    Encabezado['IdDoc']['IndServicio'] = 1,2,3,4
         # todo: forma de pago y fecha de vencimiento - opcional
@@ -1324,16 +1328,18 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 }
 
     @api.multi
+    def invoice_print(self):
+        self.ensure_one()
+        self.sent = True
+        if self.ticket:
+            return self.env['report'].get_action(self, 'l10n_cl_dte.report_ticket')
+        return self.env['report'].get_action(self, 'account.report_invoice')
+
+    @api.multi
     def print_cedible(self):
         """ Print Cedible
         """
         return self.env['report'].get_action(self, 'l10n_cl_dte.invoice_cedible')
-
-    @api.multi
-    def print_ticket(self):
-        """ Print Cedible
-        """
-        return self.env['report'].get_action(self, 'l10n_cl_dte.report_ticket')
 
     @api.multi
     def getTotalDiscount(self):
