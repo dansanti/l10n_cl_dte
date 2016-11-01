@@ -8,12 +8,12 @@ from lxml import etree
 import collections
 import dicttoxml
 
+_logger = logging.getLogger(__name__)
+
 try:
     from signxml import xmldsig, methods
 except ImportError:
     _logger.info('Cannot import signxml')
-
-_logger = logging.getLogger(__name__)
 
 BC = '''-----BEGIN CERTIFICATE-----\n'''
 EC = '''\n-----END CERTIFICATE-----\n'''
