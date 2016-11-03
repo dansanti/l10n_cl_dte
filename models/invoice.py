@@ -1160,7 +1160,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         clases = {}
         company_id = False
         es_boleta = False
+        batch = 0
         for inv in self.with_context(lang='es_CL'):
+            if not inv.sii_batch_number or inv.sii_batch_number == 0:
+                batch += 1
+                inv.sii_batch_number = batch #si viene una guía/nota regferenciando una factura, que por numeración viene a continuación de la guia/nota, será recahazada laguía porque debe estar declarada la factura primero
             es_boleta = inv._es_boleta()
             try:
                 signature_d = self.get_digital_signature(inv.company_id)
@@ -1172,7 +1176,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             signature.'''))
             certp = signature_d['cert'].replace(
                 BC, '').replace(EC, '').replace('\n', '')
-            if inv.company_id.dte_service_provider == 'SIIHOMO': #Retimbrar con número de atención y envío, y cuando está Rechazado
+            if inv.company_id.dte_service_provider == 'SIIHOMO': #Retimbrar con número de atención y envío
                 inv._timbrar(n_atencion)
             #@TODO Mejarorar esto en lo posible
             if not inv.sii_document_class_id.sii_code in clases:
@@ -1200,6 +1204,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         for id_class_doc, classes in clases.iteritems():
             NroDte = 0
             for documento in classes:
+                if documento['sii_batch_number'] in dtes.iterkeys():
+                    raise UserErro("No se puede repetir el mismo número de orden")
                 dtes.update({str(documento['sii_batch_number']): documento['envio']})
                 NroDte += 1
                 file_name += 'F' + str(int(documento['sii_document_number'])) + 'T' + str(id_class_doc)
