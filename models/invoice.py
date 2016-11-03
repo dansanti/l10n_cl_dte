@@ -808,6 +808,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         for inv in self:
             if inv.sii_result not in ['','NoEnviado','Rechazado']:
                 raise UserError("El documento %s ya ha sido enviado o está en cola de envío" % inv.sii_document_number)
+            if inv.sii_result in ['Rechazado']:
+                inv._timbrar()
             inv.responsable_envio = self.env.user.id
             inv.sii_result = 'EnCola'
         if not isinstance(n_atencion, unicode):
@@ -1170,7 +1172,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             signature.'''))
             certp = signature_d['cert'].replace(
                 BC, '').replace(EC, '').replace('\n', '')
-            if inv.company_id.dte_service_provider == 'SIIHOMO': #Retimbrar con número de atención y envío
+            if inv.company_id.dte_service_provider == 'SIIHOMO': #Retimbrar con número de atención y envío, y cuando está Rechazado
                 inv._timbrar(n_atencion)
             #@TODO Mejarorar esto en lo posible
             if not inv.sii_document_class_id.sii_code in clases:
