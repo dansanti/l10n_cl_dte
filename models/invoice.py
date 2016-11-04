@@ -1106,6 +1106,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                     ref_line['CodVndor'] = self.seler_id.id
                     ref_lines['CodCaja'] = self.journal_id.point_of_sale_id.name
                 ref_lines.extend([{'Referencia':ref_line}])
+                lin_ref += 1
         dte['item'] = invoice_lines['invoice_lines']
 
         dte['reflines'] = ref_lines
