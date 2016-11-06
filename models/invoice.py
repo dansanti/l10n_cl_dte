@@ -1113,16 +1113,22 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         dte['TEDd'] = self.get_barcode(invoice_lines['no_product'])
         return dte
 
-    def _dte_to_xml(self, dte):
-        ted = dte['Documento ID']['TEDd']
-        dte['Documento ID']['TEDd'] = ''
+    def _dte_to_xml(self, dte, tpo_dte):
+        ted = dte[tpo_dte + ' ID']['TEDd']
+        dte[(tpo_dte + ' ID')]['TEDd'] = ''
         xml = dicttoxml.dicttoxml(
             dte, root=False, attr_type=False) \
             .replace('<item>','').replace('</item>','')\
             .replace('<reflines>','').replace('</reflines>','')\
             .replace('<TEDd>','').replace('</TEDd>','')\
-            .replace('</Documento_ID>','\n'+ted+'\n</Documento_ID>')
+            .replace('</'+ tpo_dte + '_ID>','\n'+ted+'\n</'+ tpo_dte + '_ID>')
         return xml
+
+    def _tpo_dte(self):
+        tpo_dte = "Documento"
+        if self.sii_document_class_id.sii_code == 43:
+        	tpo_dte = 'Liquidacion'
+        return tpo_dte
 
     def _timbrar(self, n_atencion=None):
         try:
@@ -1136,14 +1142,15 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         certp = signature_d['cert'].replace(
             BC, '').replace(EC, '').replace('\n', '')
         folio = self.get_folio()
-        dte = collections.OrderedDict()
+        tpo_dte = self._tpo_dte()
         doc_id_number = "F{}T{}".format(folio, self.sii_document_class_id.sii_code)
-        doc_id = '<Documento ID="{}">'.format(doc_id_number)
-        dte['Documento ID'] = self._dte(n_atencion)
-        xml = self._dte_to_xml(dte)
+        doc_id = '<' + tpo_dte + ' ID="{}">'.format(doc_id_number)
+        dte = collections.OrderedDict()
+        dte[(tpo_dte + ' ID')] = self._dte(n_atencion)
+        xml = self._dte_to_xml(dte, tpo_dte)
         root = etree.XML( xml )
         xml_pret = etree.tostring(root, pretty_print=True).replace(
-'<Documento_ID>', doc_id).replace('</Documento_ID>', '</Documento>')
+        tpo_dte + '_ID>', doc_id).replace('</' + tpo_dte + '_ID>', '</' + tpo_dte + '>')
         envelope_efact = self.convert_encoding(xml_pret, 'ISO-8859-1')
         envelope_efact = self.create_template_doc(envelope_efact)
         type = 'doc'
