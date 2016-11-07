@@ -18,7 +18,8 @@ Chile: API and GUI to access Electronic Invoicing webservices.
         'l10n_cl_invoice',
         'l10n_cl_dte_caf',
         'account',
-        'report'
+        'report',
+        'purchase',
         ],
     'external_dependencies': {
         'python': [
