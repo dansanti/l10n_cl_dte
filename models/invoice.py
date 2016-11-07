@@ -1113,7 +1113,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         dte['TEDd'] = self.get_barcode(invoice_lines['no_product'])
         return dte
 
-    def _dte_to_xml(self, dte, tpo_dte):
+    def _dte_to_xml(self, dte, tpo_dte="Documento"):
         ted = dte[tpo_dte + ' ID']['TEDd']
         dte[(tpo_dte + ' ID')]['TEDd'] = ''
         xml = dicttoxml.dicttoxml(
@@ -1150,7 +1150,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         xml = self._dte_to_xml(dte, tpo_dte)
         root = etree.XML( xml )
         xml_pret = etree.tostring(root, pretty_print=True).replace(
-        tpo_dte + '_ID>', doc_id).replace('</' + tpo_dte + '_ID>', '</' + tpo_dte + '>')
+        '<' + tpo_dte + '_ID>', doc_id).replace('</' + tpo_dte + '_ID>', '</' + tpo_dte + '>')
         envelope_efact = self.convert_encoding(xml_pret, 'ISO-8859-1')
         envelope_efact = self.create_template_doc(envelope_efact)
         type = 'doc'
