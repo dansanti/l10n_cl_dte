@@ -1054,9 +1054,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             if line.discount > 0:
                 lines['DescuentoPct'] = line.discount
                 lines['DescuentoMonto'] = int(round((((line.discount / 100) * lines['PrcItem'])* qty)))
-            if not no_product and MntExe > 0:
-                lines['MontoItem'] = int(round(MntExe))
-            elif not no_product and not taxInclude:
+            if not no_product and not taxInclude:
                 lines['MontoItem'] = int(round(line.price_subtotal, 0))
             elif not no_product :
                 lines['MontoItem'] = int(round(line.price_tax_included,0))
