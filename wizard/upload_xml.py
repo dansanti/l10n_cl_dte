@@ -471,7 +471,7 @@ class UploadXMLWizard(models.TransientModel):
         })
         if 'CdgItem' in data:
             if 'TpoCodigo' in data['CdgItem']:
-                if line['CdgItem']['TpoCodigo'] == 'ean13':
+                if data['CdgItem']['TpoCodigo'] == 'ean13':
                     product_id.barcode = data['CdgItem']['VlrCodigo']
                 else:
                     product_id.default_code = data['CdgItem']['VlrCodigo']
@@ -576,7 +576,7 @@ class UploadXMLWizard(models.TransientModel):
                 lines.append(self._prepare_line(dte['Detalle'], journal=journal_document_class_id.journal_id, type=data['type']))
             elif len(dte['Detalle']) > 0:
                 for line in dte['Detalle']:
-                    lines.append(self._prepare_line(line))
+                    lines.append(self._prepare_line(line, journal=journal_document_class_id.journal_id, type=data['type']))
             data['invoice_line_ids'] = lines
             inv = self.env['account.invoice'].create(data)
             monto_xml = float(dte['Encabezado']['Totales']['MntTotal'])
