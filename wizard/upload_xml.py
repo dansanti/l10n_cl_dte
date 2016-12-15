@@ -25,9 +25,6 @@ class UploadXMLWizard(models.TransientModel):
     action = fields.Selection([
             ('create_po','Crear Orden de Pedido y Factura'),
             ('create','Crear Solamente Factura'),
-            ('response','Acuse de recibo'),
-            ('receipt','Recibo de mercaderías'),
-            ('validate','Aprobar comercialmente'),
             ], string="Acción", default="create")
 
     xml_file = fields.Binary(
