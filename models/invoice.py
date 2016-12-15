@@ -797,7 +797,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     @api.multi
     def invoice_validate(self):
-		for inv in self:
+		for inv in self.with_context(lang='es_CL'):
 			inv.sii_result = 'NoEnviado'
 			inv.responsable_envio = self.env.user.id
 			if inv.type in ['out_invoice', 'out_refund']:
@@ -807,7 +807,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     @api.multi
     def do_dte_send_invoice(self, n_atencion=None):
-        for inv in self:
+        for inv in self.with_context(lang='es_CL'):
             if inv.sii_result not in ['','NoEnviado','Rechazado']:
                 raise UserError("El documento %s ya ha sido enviado o está en cola de envío" % inv.sii_document_number)
             if inv.sii_result in ['Rechazado']:
