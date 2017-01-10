@@ -37,21 +37,20 @@ class UploadXMLWizard(models.TransientModel):
     def confirm(self):
         context = dict(self._context or {})
         active_id = context.get('active_id', []) or []
-
+        created_inv = []
         if self.action == 'create':
             self.do_create_inv()
+            if self.inv:
+                created_inv.append(self.inv.id)
+            xml_id = 'account.action_invoice_tree2'
         if self.action == 'create_po':
             self.do_create_po()
-        if self.action not in ['create','create_po']:
-            self.inv = self.env['account.invoice'].browse(active_id)
-            self.inv.sii_xml_request = base64.b64decode(self.xml_file)
-            self.inv.filename = self.filename
-            if self.action == 'response':
-                self.do_receipt_deliver()
-            if self.action == 'receipt':
-                self.do_receipt()
-            if self.action == 'validate':
-                self.do_validar_comercial()
+            xml_id = 'purchase.purchase_order_tree'
+        result = self.env.ref('%s' % (xml_id)).read()[0]
+        invoice_domain = eval(result['domain'])
+        invoice_domain.append(('id', 'in', created_inv))
+        result['domain'] = invoice_domain
+        return result
 
     def _read_xml(self):
         if self.xml_file:
@@ -461,10 +460,20 @@ class UploadXMLWizard(models.TransientModel):
         })
         return partner_id
 
+    def _default_category(self,):
+        md = self.env['ir.model.data']
+        res = False
+        try:
+            res = md.get_object_reference('product', 'product_category_all')[1]
+        except ValueError:
+            res = False
+        return res
+
     def _create_prod(self, data):
         product_id = self.env['product.product'].create({
             'name': data['NmbItem'],
             'lst_price': float(data['PrcItem']),
+            'categ_id': self._default_category(),
         })
         if 'CdgItem' in data:
             if 'TpoCodigo' in data['CdgItem']:
