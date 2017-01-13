@@ -796,12 +796,15 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     @api.multi
     def invoice_validate(self):
-		for inv in self.with_context(lang='es_CL'):
-			inv.sii_result = 'NoEnviado'
-			inv.responsable_envio = self.env.user.id
-			if inv.type in ['out_invoice', 'out_refund']:
-				inv._timbrar()
-		super(invoice,self).invoice_validate()
+        for inv in self.with_context(lang='es_CL'):
+            inv.sii_result = 'NoEnviado'
+            inv.responsable_envio = self.env.user.id
+            if inv.type in ['out_invoice', 'out_refund']:
+                if inv.journal_id.restore_mode:
+                    inv.sii_result = 'Proceso'
+                else:
+                    inv._timbrar()
+        super(invoice,self).invoice_validate()
 
 
     @api.multi
