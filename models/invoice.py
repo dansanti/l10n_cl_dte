@@ -872,13 +872,14 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         else:
             Emisor['RznSoc'] = self.company_id.partner_id.name
             Emisor['GiroEmis'] = self._acortar_str(self.company_id.activity_description.name, 80)
-            Emisor['Telefono'] = self.company_id.phone or ''
+            if self.company_id.phone:
+                Emisor['Telefono'] = self._acortar_str(self.company_id.phone, 20)
             Emisor['CorreoEmisor'] = self.company_id.dte_email
             Emisor['item'] = self._giros_emisor()
         if self.journal_id.sii_code:
-            Emisor['Sucursal'] = self.journal_id.sucursal.name
-            Emisor['CdgSIISucur'] = self.journal_id.sii_code
-        Emisor['DirOrigen'] = self.company_id.street + ' ' +(self.company_id.street2 or '')
+            Emisor['Sucursal'] = self._acortar_str(self.journal_id.sucursal.name, 20)
+            Emisor['CdgSIISucur'] = self._acortar_str(self.journal_id.sii_code, 9)
+        Emisor['DirOrigen'] = self._acortar_str(self.company_id.street + ' ' +(self.company_id.street2 or ''), 70)
         Emisor['CmnaOrigen'] = self.company_id.city_id.name or ''
         Emisor['CiudadOrigen'] = self.company_id.city or ''
         return Emisor
@@ -896,10 +897,10 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 raise UserError(_('Seleccione giro del partner'))
             Receptor['GiroRecep'] = self._acortar_str(self.activity_description.name, 40)
         if self.partner_id.phone:
-            Receptor['Contacto'] = self.partner_id.phone
+            Receptor['Contacto'] = self._acortar_str(self.partner_id.phone or self.partner_id.dte_email or self.partner_id.email, 80)
         if self.partner_id.dte_email and not self._es_boleta():
-            Receptor['CorreoRecep'] = self.partner_id.dte_email
-        Receptor['DirRecep'] = self.partner_id.street+ ' ' + (self.partner_id.street2 or '')
+            Receptor['CorreoRecep'] = self.partner_id.dte_email or self.partner_id.email
+        Receptor['DirRecep'] = self._acortar_str(self.partner_id.street+ ' ' + (self.partner_id.street2 or ''), 70)
         Receptor['CmnaRecep'] = self.partner_id.city_id.name
         Receptor['CiudadRecep'] = self.partner_id.city
         return Receptor
