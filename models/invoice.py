@@ -556,6 +556,62 @@ version="1.0">
             retorno.update({'sii_result': 'Enviado','sii_send_ident':respuesta_dict['RECEPCIONDTE']['TRACKID']})
         return retorno
 
+    def _create_attachment(self,):
+        data = base64.b64encode(self.sii_xml_request)
+        filename = (self.document_number+'.xml').replace(' ','')
+        url_path = '/web/binary/download_document?model=account.invoice\
+    &field=sii_xml_request&id=%s&filename=%s' % (self.id, filename)
+        att = self.env['ir.attachment'].search([('name','=', filename), ('res_id','=', self.id), ('res_model','=','account.invoice')], limit=1)
+        if att:
+            return att
+        values = dict(
+                        name=filename,
+                        datas_fname=filename,
+                        url=url_path,
+                        res_model='account.invoice',
+                        res_id=self.id,
+                        type='binary',
+                        datas=data,
+                    )
+        att = self.env['ir.attachment'].create(values)
+        return att
+
+
+    @api.multi
+    def action_invoice_sent(self):
+        """ Open a window to compose an email, with the edi invoice template
+            message loaded by default
+        """
+        self.ensure_one()
+        template = self.env.ref('account.email_template_edi_invoice', False)
+        compose_form = self.env.ref('mail.email_compose_message_wizard_form', False)
+        att = self._create_attachment()
+        atts = []
+        if template.attachment_ids:
+            for a in template.attachment_ids:
+                atts.append(a.id)
+        atts.append((6, 0, [att.id]))
+        template.attachment_ids = atts
+        ctx = dict(
+            default_model='account.invoice',
+            default_res_id=self.id,
+            default_use_template=bool(template),
+            default_template_id=template.id,
+            default_composition_mode='comment',
+            mark_invoice_as_sent=True,
+        )
+        return {
+            'name': _('Compose Email'),
+            'type': 'ir.actions.act_window',
+            'view_type': 'form',
+            'view_mode': 'form',
+            'res_model': 'mail.compose.message',
+            'views': [(compose_form.id, 'form')],
+            'view_id': compose_form.id,
+            'target': 'new',
+            'context': ctx,
+        }
+
     '''
     Funcion para descargar el xml en el sistema local del usuario
      @author: Daniel Blanco Martin (daniel[at]blancomartin.cl)
@@ -564,10 +620,11 @@ version="1.0">
     @api.multi
     def get_xml_file(self):
         filename = (self.document_number+'.xml').replace(' ','')
+        url_path = '/web/binary/download_document?model=account.invoice\
+&field=sii_xml_request&id=%s&filename=%s' % (self.id, filename)
         return {
             'type' : 'ir.actions.act_url',
-            'url': '/web/binary/download_document?model=account.invoice\
-&field=sii_xml_request&id=%s&filename=%s' % (self.id,filename),
+            'url': url_path,
             'target': 'self',
         }
 
