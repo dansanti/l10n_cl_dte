@@ -293,7 +293,7 @@ class UploadXMLWizard(models.TransientModel):
             'env_resp')
         if self.inv:
             self.inv.sii_xml_response = respuesta
-        att = self._create_attachment(respuesta, 'recepcion_envio_' + self.inv.sii_send_file_name + '_' + str(IdRespuesta))
+        att = self._create_attachment(respuesta, 'recepcion_envio_' + (self.filename or self.inv.sii_send_file_name) + '_' + str(IdRespuesta))
         self.inv.message_post(
             body='XML de Respuesta Envío, Estado: %s , Glosa: %s ' % (recep['EstadoRecepEnv'], recep['RecepEnvGlosa'] ),
             subject='XML de Respuesta Envío' ,
@@ -618,13 +618,14 @@ class UploadXMLWizard(models.TransientModel):
         return journal_sii
 
     def _create_inv(self, dte, company_id):
-        if not self.env['account.invoice'].search(
+        inv = self.env['account.invoice'].search(
         [
             ('reference','=',dte['Encabezado']['IdDoc']['Folio']),
             ('type','in',['in_invoice','in_refund']),
             ('sii_document_class_id.sii_code','=',dte['Encabezado']['IdDoc']['TipoDTE']),
             ('partner_id.document_number','=', dte['Encabezado']['Emisor']['RUTEmisor']),
-        ]):
+        ])
+        if not inv:
             journal_document_class_id = self._get_journal(dte['Encabezado']['IdDoc']['TipoDTE'])
             if not journal_document_class_id:
                 raise UserError('No existe Diario para el tipo de documento, por favor añada uno primero')
@@ -652,8 +653,7 @@ class UploadXMLWizard(models.TransientModel):
                         t.base = float(dte['Encabezado']['Totales']['MntNeto'])
             else:
                 raise UserError('¡El documento está completamente descuadrado!')
-            return inv
-        return False # ya ha sido creada
+        return inv
 
     def do_create_inv(self):
         envio = self._read_xml()
@@ -667,8 +667,8 @@ class UploadXMLWizard(models.TransientModel):
                 limit=1)
             if company_id:
                 self.inv = self._create_inv(dte['Documento'], company_id)
-                if self.inv:
-                    self.inv.sii_xml_response = resp['warning']['message']
+                #if self.inv:
+                #    self.inv.sii_xml_response = resp['warning']['message']
         else:
             for dte in envio['EnvioDTE']['SetDTE']['DTE']:
                 company_id = self.env['res.company'].search(
@@ -678,8 +678,8 @@ class UploadXMLWizard(models.TransientModel):
                     limit=1)
                 if company_id:
                     self.inv = self._create_inv(dte['Documento'], company_id)
-                    if self.inv:
-                        self.inv.sii_xml_response = resp['warning']['message']
+                #    if self.inv:
+                #        self.inv.sii_xml_response = resp['warning']['message']
         if not self.inv:
             raise UserError('El archivo XML no contiene documentos para alguna empresa registrada en Odoo, o ya ha sido procesado anteriormente ')
         return resp
