@@ -73,7 +73,7 @@ class UploadXMLWizard(models.TransientModel):
         our = base64.b64encode(self.inv.digest(mess))
         if our != xml[1][0][2][2].text:
             return 2, 'Envio Rechazado - Error de Firma'
-        return 0, ''
+        return 0, 'Envio Ok'
 
     def _check_digest_dte(self, dte):
         if self.xml_file:
@@ -124,13 +124,12 @@ class UploadXMLWizard(models.TransientModel):
         #    sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(SubTotDTE['TipoDTE']))])
         #    if not sii_document_class:
         #        return  99, 'Tipo de documento desconocido'
-        return 0, ''
+        return 0, 'Envío Ok'
 
     def _validar(self, doc):
         cara, glosa = self._validar_caratula(doc[0][0]['Caratula'])
-        if cara != 0:
-            return cara
-        return 0, ''
+
+        return cara, glosa
 
     def _validar_dte(self, doc):
         res = collections.OrderedDict()
@@ -194,7 +193,7 @@ class UploadXMLWizard(models.TransientModel):
             raise UserError('No hay registro de archivo de envío, por favor seleccione el archivo e envío')
         xml = etree.fromstring(string)
         resp = collections.OrderedDict()
-        resp['NmbEnvio'] = self.filename
+        resp['NmbEnvio'] = self.filename or self.inv.sii_send_file_name
         resp['FchRecep'] = self.inv.time_stamp()
         resp['CodEnvio'] = self.inv._acortar_str(IdRespuesta, 10)
         resp['EnvioDTEID'] = xml[0].attrib['ID']
@@ -225,6 +224,30 @@ class UploadXMLWizard(models.TransientModel):
 </RespuestaDTE>'''.format(Caratula,resultado)
         return resp
 
+    def _create_attachment(self, xml, name):
+        data = base64.b64encode(xml)
+        filename = (name + '.xml').replace(' ','')
+        url_path = '/web/binary/download_document?model=account.invoice\
+    &field=sii_xml_request&id=%s&filename=%s' % (self.inv.id, filename)
+        att = self.env['ir.attachment'].search([
+                                                ('name','=', filename),
+                                                ('res_id','=', self.inv.id),
+                                                ('res_model','=','account.invoice')],
+                                                limit=1)
+        if att:
+            return att
+        values = dict(
+                        name=filename,
+                        datas_fname=filename,
+                        url=url_path,
+                        res_model='account.invoice',
+                        res_id=self.inv.id,
+                        type='binary',
+                        datas=data,
+                    )
+        att = self.env['ir.attachment'].create(values)
+        return att
+
     def do_receipt_deliver(self):
         envio = self._read_xml()
         company_id = self.env['res.company'].search(
@@ -253,21 +276,30 @@ class UploadXMLWizard(models.TransientModel):
                     </RecepcionEnvio>
                     '''.format(resp_dtes)
         RutRecibe = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
-        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.env['account.invoice'].format_vat(company_id.vat), RutRecibe, IdRespuesta, NroDetalles),
-                                       root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
+        caratula_recepcion_envio = self._caratula_respuesta(
+            self.env['account.invoice'].format_vat(company_id.vat),
+            RutRecibe,
+            IdRespuesta,
+            NroDetalles)
+        caratula = dicttoxml.dicttoxml(caratula_recepcion_envio,
+                                       root=False,
+                                       attr_type=False).replace('<item>','\n').replace('</item>','\n')
         resp = self._RecepcionEnvio(caratula, RecepcionEnvio )
-
         respuesta = self.inv.sign_full_xml(
-            resp, signature_d['priv_key'], certp,
-            'Odoo_resp', 'env_resp')
+            resp,
+            signature_d['priv_key'],
+            certp,
+            'Odoo_resp',
+            'env_resp')
         if self.inv:
             self.inv.sii_xml_response = respuesta
-        return {
-            'warning': {
-                'title': "XML de Respuesta Envío",
-                'message': respuesta,
-                }
-            }
+        att = self._create_attachment(respuesta, 'recepcion_envio_' + self.inv.sii_send_file_name + '_' + str(IdRespuesta))
+        self.inv.message_post(
+            body='XML de Respuesta Envío, Estado: %s , Glosa: %s ' % (recep['EstadoRecepEnv'], recep['RecepEnvGlosa'] ),
+            subject='XML de Respuesta Envío' ,
+            partner_ids=[self.inv.partner_id.id],
+            attachment_ids=[ att.id ],
+            message_type='comment', subtype='mt_comment')
 
     def _validar_dte_en_envio(self, doc, IdRespuesta):
         res = collections.OrderedDict()
@@ -347,22 +379,32 @@ class UploadXMLWizard(models.TransientModel):
         dicttoxml.set_debug(False)
         ResultadoDTE = dicttoxml.dicttoxml(dte, root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
         RutRecibe = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
-        caratula = dicttoxml.dicttoxml(self._caratula_respuesta(self.env['account.invoice'].format_vat(inv.company_id.vat), RutRecibe, IdRespuesta, NroDetalles),
-                                       root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
+        caratula_validacion_comercial = self._caratula_respuesta(
+            self.env['account.invoice'].format_vat(inv.company_id.vat),
+            RutRecibe,
+            IdRespuesta,
+            NroDetalles)
+        caratula = dicttoxml.dicttoxml(caratula_validacion_comercial,
+                                       root=False,
+                                       attr_type=False).replace('<item>','\n').replace('</item>','\n')
         resp = self._ResultadoDTE(caratula, ResultadoDTE)
         respuesta = self.inv.sign_full_xml(
-            resp, signature_d['priv_key'], certp,
-            'Odoo_resp', 'env_resp')
+            resp,
+            signature_d['priv_key'],
+            certp,
+            'Odoo_resp',
+            'env_resp')
         if self.inv:
             self.inv.sii_message = respuesta
-        return {
-            'warning': {
-                'title': "XML de Respuesta Envío",
-                'message': respuesta,
-                }
-            }
+        att = self._create_attachment(respuesta, 'validacion_comercial_' + str(IdRespuesta))
+        self.inv.message_post(
+            body='XML de Validación Comercial, Estado: %s, Glosa: %s' % (dte['ResultadoDTE']['EstadoDTE'], dte['ResultadoDTE']['EstadoDTEGlosa']),
+            subject='XML de Validación Comercial',
+            partner_ids=[self.inv.partner_id.id],
+            attachment_ids=[ att.id ],
+            message_type='comment', subtype='mt_comment')
 
-    def _recep(self, inv, RutFirma, key, cert):
+    def _recep(self, inv, RutFirma):
         receipt = collections.OrderedDict()
         receipt['TipoDoc'] = inv.sii_document_class_id.sii_code
         receipt['Folio'] = int(inv.reference)
@@ -374,17 +416,7 @@ class UploadXMLWizard(models.TransientModel):
         receipt['RutFirma'] = RutFirma
         receipt['Declaracion'] = 'El acuse de recibo que se declara en este acto, de acuerdo a lo dispuesto en la letra b) del Art. 4, y la letra c) del Art. 5 de la Ley 19.983, acredita que la entrega de mercaderias o servicio(s) prestado(s) ha(n) sido recibido(s).'
         receipt['TmstFirmaRecibo'] = inv.time_stamp()
-        id = "T"+str(inv.sii_document_class_id.sii_code)+"F"+str(inv.get_folio())
-        doc = '''
-<Recibo version="1.0" xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte Recibos_v10.xsd" >
-    <DocumentoRecibo ID="{0}" >
-    {1}
-    </DocumentoRecibo>
-</Recibo>
-        '''.format(id, dicttoxml.dicttoxml(receipt, root=False, attr_type=False))
-        return self.inv.sign_full_xml(
-            doc, key, cert,
-            'Recibo', 'recep')
+        return receipt
 
     def _envio_recep(self,caratula, recep):
         xml = '''<?xml version="1.0" encoding="ISO-8859-1"?>
@@ -411,6 +443,7 @@ class UploadXMLWizard(models.TransientModel):
     @api.multi
     def do_receipt(self):
         receipts = ""
+        message = ""
         for inv in self.inv:
             if inv.estado_recep_dte not in ['0']:
                 try:
@@ -423,22 +456,44 @@ class UploadXMLWizard(models.TransientModel):
                 signature.'''))
                 certp = signature_d['cert'].replace(
                     BC, '').replace(EC, '').replace('\n', '')
-                receipts += "\n"+self._recep(inv, signature_d['subject_serial_number'],signature_d['priv_key'], certp)
+                dict_recept = self._recep( inv, signature_d['subject_serial_number'] )
+                id = "T" + str(inv.sii_document_class_id.sii_code) + "F" + str(inv.get_folio())
+                doc = '''
+        <Recibo version="1.0" xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte Recibos_v10.xsd" >
+            <DocumentoRecibo ID="{0}" >
+            {1}
+            </DocumentoRecibo>
+        </Recibo>
+                '''.format(id, dicttoxml.dicttoxml(dict_recept, root=False, attr_type=False))
+                message += '\n ' + str(dict_recept['Folio']) + ' ' + dict_recept['Declaracion']
+                receipt = self.inv.sign_full_xml(
+                    doc,
+                    signature_d['priv_key'],
+                    certp,
+                    'Recibo',
+                    'recep')
+                receipts += "\n" + receipt
         envio = self._read_xml()
         RutRecibe = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
-        caratula = dicttoxml.dicttoxml(self._caratula_recep(self.env['account.invoice'].format_vat(inv.company_id.vat), RutRecibe), root=False, attr_type=False)
+        dict_caratula = self._caratula_recep(self.env['account.invoice'].format_vat(inv.company_id.vat), RutRecibe)
+        caratula = dicttoxml.dicttoxml(dict_caratula, root=False, attr_type=False)
         envio_dte = self._envio_recep(caratula, receipts)
         envio_dte = self.inv.sign_full_xml(
-            envio_dte, signature_d['priv_key'], certp,
-            'SetDteRecibidos', 'env_recep')
+            envio_dte,
+            signature_d['priv_key'],
+            certp,
+            'SetDteRecibidos',
+            'env_recep')
         if self.inv:
             self.inv.sii_receipt = envio_dte
-        return {
-            'warning': {
-                'title': "XML de Respuesta Envío",
-                'message': envio_dte,
-                }
-            }
+        att = self._create_attachment(envio_dte, 'recepcion_mercaderias_' + str(self.inv.sii_send_file_name))
+        self.inv.message_post(
+            body='XML de Recepción de Documeto\n %s' % (message),
+            subject='XML de Recepción de Documento',
+            partner_ids=[ self.inv.partner_id.id ],
+            attachment_ids=[ att.id ],
+            message_type='comment',
+            subtype='mt_comment')
 
     def _create_partner(self, data):
         giro_id = self.env['sii.activity.description'].search([('name','=',data['GiroEmis'])])
