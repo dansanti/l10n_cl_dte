@@ -1337,9 +1337,17 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         receptor = self.format_vat(self.partner_id.vat)
         date_invoice = datetime.strptime(self.date_invoice, "%Y-%m-%d").strftime("%d-%m-%Y")
         rut = signature_d['subject_serial_number']
-        respuesta = _server.getEstDte(rut[:8], str(rut[-1]),
-                self.company_id.vat[2:-1],self.company_id.vat[-1], receptor[:8],receptor[2:-1],str(self.sii_document_class_id.sii_code), str(self.sii_document_number),
-                date_invoice, str(self.amount_total),token)
+        respuesta = _server.getEstDte(rut[:8],
+                                      str(rut[-1]),
+                                      self.company_id.vat[2:-1],
+                                      self.company_id.vat[-1],
+                                      receptor[:8],
+                                      receptor[-1],
+                                      str(self.sii_document_class_id.sii_code),
+                                      str(self.sii_document_number),
+                                      date_invoice,
+                                      str(int(self.amount_total)),
+                                      token)
         self.sii_message = respuesta
         resp = xmltodict.parse(respuesta)
         if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == '2':
