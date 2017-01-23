@@ -10,15 +10,8 @@ class dteEmail(models.Model):
     dte_email = fields.Char('DTE Email', related='partner_id.dte_email')
     dte_service_provider = fields.Selection(
         (
-            ('', 'None'),
-            ('EFACTURADELSUR', 'efacturadelsur.cl'),
-            ('ENTERNET', 'enternet.cl'),
-            ('FACTURACION', 'facturacion.cl'),
-            ('FACTURAENLINEA', 'facturaenlinea.cl'),
-            ('LIBREDTE', 'LibreDTE'),
             ('SIIHOMO', 'SII - Certification process'),
             ('SII', 'www.sii.cl'),
-            ('SII MiPyme', 'SII - Portal MiPyme'),
         ), 'DTE Service Provider', help='''Please select your company service \
 provider for DTE service. Select \'None\' if you use manual invoices, fiscal \
 controllers or MiPYME Sii Service. Also take in account that if you select \
@@ -26,7 +19,7 @@ controllers or MiPYME Sii Service. Also take in account that if you select \
 to be legally enabled to use the service. If your service provider is not \
 listed here, please send us an email to soporte@blancomartin.cl in order to \
 add the option.
-''', default='')
+''', default='SIIHOMO')
     dte_resolution_number = fields.Char('SII Exempt Resolution Number',
                                         help='''This value must be provided \
 and must appear in your pdf or printed tribute document, under the electronic \
