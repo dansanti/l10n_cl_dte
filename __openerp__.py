@@ -2,7 +2,7 @@
 {
     "name": """Chile - Web Services de Documentos Tributarios Electrónicos\
     """,
-    'version': '9.0.4.9.0',
+    'version': '9.0.5.0.0',
     'category': 'Localization/Chile',
     'sequence': 12,
     'author':  'Daniel Santibáñez Polanco, BMyA SA - Blanco Martín & Asociados, Odoo Chile',

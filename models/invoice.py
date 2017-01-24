@@ -861,28 +861,34 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                     inv.sii_result = 'Proceso'
                 else:
                     inv._timbrar()
+                    self.env['sii.cola_envio'].create({
+                                                'doc_ids':[inv.id],
+                                                'model':'account.invoice',
+                                                'user_id':self.env.user.id,
+                                                'tipo_trabajo': 'pasivo',
+                                                'date_time': (datetime.now() + timedelta(hours=12)),
+                                                })
         super(invoice,self).invoice_validate()
-
 
     @api.multi
     def do_dte_send_invoice(self, n_atencion=None):
+        ids = []
         for inv in self.with_context(lang='es_CL'):
-            if inv.sii_result not in ['','NoEnviado','Rechazado']:
-                raise UserError("El documento %s ya ha sido enviado o está en cola de envío" % inv.sii_document_number)
-            if inv.sii_result in ['Rechazado']:
-                inv._timbrar()
-            inv.responsable_envio = self.env.user.id
-            inv.sii_result = 'EnCola'
+            if inv.sii_result in ['','NoEnviado','Rechazado']:
+                if inv.sii_result in ['Rechazado']:
+                    inv._timbrar()
+                inv.sii_result = 'EnCola'
+                ids.append(inv.id)
         if not isinstance(n_atencion, unicode):
             n_atencion = ''
-        self.env['sii.cola_envio'].create({
-                                    'doc_ids':self.ids,
+        if ids:
+            self.env['sii.cola_envio'].create({
+                                    'doc_ids': ids,
                                     'model':'account.invoice',
                                     'user_id':self.env.user.id,
-                                    'tipo_trabajo':'envio',
+                                    'tipo_trabajo': 'envio',
                                     'n_atencion': n_atencion
                                     })
-
     def _es_boleta(self):
         if self.sii_document_class_id.sii_code in [35, 38, 39, 41, 70, 71]:
             return True
