@@ -52,22 +52,17 @@ class UploadXMLWizard(models.TransientModel):
         result['domain'] = invoice_domain
         return result
 
-    def _read_xml(self):
+    def _read_xml(self, parse=True):
         if self.xml_file:
-            string = base64.b64decode(self.xml_file)
+            xml = string = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
         else:
-            string = self.inv.sii_xml_request
-        xml = xmltodict.parse(string)
+            xml = string = self.inv.sii_xml_request.decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
+        if parse:
+            xml = xmltodict.parse(string)
         return xml
 
     def _check_digest_caratula(self):
-        if self.xml_file:
-            string = base64.b64decode(self.xml_file).encode('UTF-8')
-        elif self.inv and self.inv.sii_xml_request:
-            string = self.inv.sii_xml_request.encode('UTF-8')
-        else :
-            raise UserError('No se ha entregado un string o archivo xml')
-        xml = etree.fromstring(string)
+        xml = etree.fromstring(self._read_xml(False))
         string = etree.tostring(xml[0])
         mess = etree.tostring(etree.fromstring(string), method="c14n")
         our = base64.b64encode(self.inv.digest(mess))
@@ -76,11 +71,7 @@ class UploadXMLWizard(models.TransientModel):
         return 0, 'Envio Ok'
 
     def _check_digest_dte(self, dte):
-        if self.xml_file:
-            string = base64.b64decode(self.xml_file).encode('UTF-8')
-        else:
-            string = self.inv.sii_xml_request.encode('utf-8')
-        xml = etree.fromstring(string)
+        xml = etree.fromstring(self._read_xml(False))
         if xml[0][0].tag == "{http://www.sii.cl/SiiDte}Caratula":
             d = xml[0][1]
             i = 0
@@ -111,13 +102,7 @@ class UploadXMLWizard(models.TransientModel):
         if not partner_id and not self.inv:
             return 2, 'Rut no coincide con los registros'
         try:
-            if self.xml_file:
-                string = base64.b64decode(self.xml_file).encode('UTF-8')
-            elif self.inv and self.inv.sii_xml_request:
-                string = self.inv.sii_xml_request.encode('UTF-8')
-            else :
-                raise UserError('No se ha entregado un string o archivo xml')
-            self.inv.xml_validator(string, 'env')
+            self.inv.xml_validator(self._read_xml(False), 'env')
         except:
                return 1, 'Envio Rechazado - Error de Schema'
         #for SubTotDTE in cara['SubTotDTE']:
@@ -185,13 +170,7 @@ class UploadXMLWizard(models.TransientModel):
 
     def _receipt(self, IdRespuesta):
         envio = self._read_xml()
-        if self.xml_file:
-            string = base64.b64decode(self.xml_file).encode('UTF-8')
-        elif self.inv:
-            string = self.inv.sii_xml_request.encode('utf-8')
-        else:
-            raise UserError('No hay registro de archivo de envío, por favor seleccione el archivo e envío')
-        xml = etree.fromstring(string)
+        xml = etree.fromstring(self._read_xml(False))
         resp = collections.OrderedDict()
         resp['NmbEnvio'] = self.filename or self.inv.sii_send_file_name
         resp['FchRecep'] = self.inv.time_stamp()
@@ -596,7 +575,7 @@ class UploadXMLWizard(models.TransientModel):
         elif not partner_id.supplier:
             partner_id.supplier = True
         return {
-            'origin' : 'XML Envío: ' + self.filename.encode('utf-8'),
+            'origin' : 'XML Envío: ' + self.filename.decode('ISO-8859-1'),
             'reference': dte['Encabezado']['IdDoc']['Folio'],
             'date_invoice' :dte['Encabezado']['IdDoc']['FchEmis'],
             'partner_id' : partner_id.id,
