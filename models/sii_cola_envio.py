@@ -49,7 +49,8 @@ class ColaEnvio(models.Model):
                     if c.tipo_trabajo == 'envio':
                         try:
                             docs.do_dte_send(c.n_atencion)
-                            c.tipo_trabajo = 'consulta'
+                            if docs[0].sii_result not in ['', 'NoEnviado']:
+                                c.tipo_trabajo = 'consulta'
                         except Exception as e:
                             _logger.info("Error en envío Cola")
                             _logger.info(str(e))
