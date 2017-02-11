@@ -273,12 +273,13 @@ class UploadXMLWizard(models.TransientModel):
         if self.inv:
             self.inv.sii_xml_response = respuesta
         att = self._create_attachment(respuesta, 'recepcion_envio_' + (self.filename or self.inv.sii_send_file_name) + '_' + str(IdRespuesta))
-        self.inv.message_post(
-            body='XML de Respuesta Envío, Estado: %s , Glosa: %s ' % (recep['EstadoRecepEnv'], recep['RecepEnvGlosa'] ),
-            subject='XML de Respuesta Envío' ,
-            partner_ids=[self.inv.partner_id.id],
-            attachment_ids=[ att.id ],
-            message_type='comment', subtype='mt_comment')
+        if self.inv.partner_id and  att:
+            self.inv.message_post(
+                body='XML de Respuesta Envío, Estado: %s , Glosa: %s ' % (recep['EstadoRecepEnv'], recep['RecepEnvGlosa'] ),
+                subject='XML de Respuesta Envío' ,
+                partner_ids=[self.inv.partner_id.id],
+                attachment_ids=[ att.id ],
+                message_type='comment', subtype='mt_comment')
 
     def _validar_dte_en_envio(self, doc, IdRespuesta):
         res = collections.OrderedDict()
@@ -574,8 +575,10 @@ class UploadXMLWizard(models.TransientModel):
             partner_id = self._create_partner(dte['Encabezado']['Emisor'])
         elif not partner_id.supplier:
             partner_id.supplier = True
+        name = self.filename.decode('ISO-8859-1').encode('UTF-8')
+        xml =base64.b64decode(self.xml_file).decode('ISO-8859-1')
         return {
-            'origin' : 'XML Envío: ' + self.filename.decode('ISO-8859-1'),
+            'origin' : 'XML Envío: ' + name,
             'reference': dte['Encabezado']['IdDoc']['Folio'],
             'date_invoice' :dte['Encabezado']['IdDoc']['FchEmis'],
             'partner_id' : partner_id.id,
@@ -584,8 +587,8 @@ class UploadXMLWizard(models.TransientModel):
             'journal_id': journal_document_class_id.journal_id.id,
             'turn_issuer': company_id.company_activities_ids[0].id,
             'journal_document_class_id':journal_document_class_id.id,
-            'sii_xml_request': base64.b64decode(self.xml_file),
-            'sii_send_file_name': self.filename,
+            'sii_xml_request': xml ,
+            'sii_send_file_name': name,
         }
 
     def _get_journal(self, sii_code):
