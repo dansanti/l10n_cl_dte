@@ -569,6 +569,22 @@ class UploadXMLWizard(models.TransientModel):
             'invoice_line_tax_ids': [(6, 0, product_id.supplier_taxes_id.ids)],
         }]
 
+    def _prepare_ref(self, ref):
+        tpo = self.env['sii.document_class'].search([('sii_code', '=', ref['TpoDocRef'])])
+        if not tpo:
+            raise UserError(_('No existe el tipo de documento'))
+        folio = ref['FolioRef']
+        fecha = ref['FchRef']
+        cod_ref = ref['CodRef'] if 'CodRef' in ref else None
+        motivo = ref['RazonRef'] if 'RazonRef' in ref else None
+        return [0,0,{
+        'origen' : folio,
+        'sii_referencia_TpoDocRef' : tpo.id,
+        'sii_referencia_CodRef' : cod_ref,
+        'motivo' : motivo,
+        'fecha_documento' : fecha,
+        }]
+
     def _prepare_invoice(self, dte, company_id, journal_document_class_id):
         partner_id = self.env['res.partner'].search([('vat','like', dte['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
         if not partner_id:
@@ -591,10 +607,11 @@ class UploadXMLWizard(models.TransientModel):
             'sii_send_file_name': name,
         }
 
-    def _get_journal(self, sii_code):
+    def _get_journal(self, sii_code, company_id):
         journal_sii = self.env['account.journal.sii_document_class'].search(
                 [('sii_document_class_id.sii_code', '=', sii_code),
                 ('journal_id.type','=','purchase'),
+                ('journal_id.company_id', '=', company_id.id)
                 ],
         )[0]
         return journal_sii
@@ -608,20 +625,30 @@ class UploadXMLWizard(models.TransientModel):
             ('partner_id.document_number','=', dte['Encabezado']['Emisor']['RUTEmisor']),
         ])
         if not inv:
-            journal_document_class_id = self._get_journal(dte['Encabezado']['IdDoc']['TipoDTE'])
+            company_id = self.env['res.company'].search([('vat','like', dte['Encabezado']['Receptor']['RUTRecep'].replace('-',''))])
+            journal_document_class_id = self._get_journal(dte['Encabezado']['IdDoc']['TipoDTE'], company_id)
             if not journal_document_class_id:
                 raise UserError('No existe Diario para el tipo de documento, por favor añada uno primero')
             data = self._prepare_invoice(dte, company_id, journal_document_class_id)
             data['type'] = 'in_invoice'
             if dte['Encabezado']['IdDoc']['TipoDTE'] in ['54', '61']:
                 data['type'] = 'in_refund'
-            lines =[(5,)]
+            lines = [(5,)]
             if 'NroLinDet' in dte['Detalle']:
                 lines.append(self._prepare_line(dte['Detalle'], journal=journal_document_class_id.journal_id, type=data['type']))
             elif len(dte['Detalle']) > 0:
                 for line in dte['Detalle']:
                     lines.append(self._prepare_line(line, journal=journal_document_class_id.journal_id, type=data['type']))
+            refs = []
+            if 'Referencia' in dte:
+                refs = [(5,)]
+                if 'NroLinRef' in dte['Referencia']:
+                    refs.append(self._prepare_ref(dte['Referencia']))
+                else:
+                    for ref in dte['Referencia']:
+                        refs.append(self._prepare_ref(ref))
             data['invoice_line_ids'] = lines
+            data['referencias'] = refs
             inv = self.env['account.invoice'].create(data)
             monto_xml = float(dte['Encabezado']['Totales']['MntTotal'])
             if inv.amount_total == monto_xml:
