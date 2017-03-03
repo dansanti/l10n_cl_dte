@@ -561,16 +561,17 @@ class UploadXMLWizard(models.TransientModel):
         }]
 
     def _prepare_ref(self, ref):
-        tpo = self.env['sii.document_class'].search([('sii_code', '=', ref['TpoDocRef'])])
-        if not tpo:
-            raise UserError(_('No existe el tipo de documento'))
+        try:
+            tpo = self.env['sii.document_class'].search([('sii_code', '=', ref['TpoDocRef'])]).id
+        except:
+            tpo = False
         folio = ref['FolioRef']
         fecha = ref['FchRef']
         cod_ref = ref['CodRef'] if 'CodRef' in ref else None
         motivo = ref['RazonRef'] if 'RazonRef' in ref else None
         return [0,0,{
         'origen' : folio,
-        'sii_referencia_TpoDocRef' : tpo.id,
+        'sii_referencia_TpoDocRef' : tpo,
         'sii_referencia_CodRef' : cod_ref,
         'motivo' : motivo,
         'fecha_documento' : fecha,
