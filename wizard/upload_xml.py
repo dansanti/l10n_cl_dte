@@ -481,10 +481,13 @@ class UploadXMLWizard(models.TransientModel):
             giro_id = self.env['sii.activity.description'].create({
                 'name': data['GiroEmis'],
             })
+        rut = data['RUTEmisor'].replace('-','')
+        if int(rut) < 10000000:
+            rut = '0' + str(int(rut))
         partner_id = self.env['res.partner'].create({
             'name': data['RznSoc'],
             'activity_description': giro_id.id,
-            'vat': 'CL'+data['RUTEmisor'].replace('-',''),
+            'vat': 'CL' + rut,
             'document_type_id': self.env.ref('l10n_cl_invoice.dt_RUT').id,
             'responsability_id': self.env.ref('l10n_cl_invoice.res_IVARI').id,
             'document_number': data['RUTEmisor'],
