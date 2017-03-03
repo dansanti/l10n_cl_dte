@@ -52,13 +52,15 @@ class UploadXMLWizard(models.TransientModel):
         result['domain'] = invoice_domain
         return result
 
-    def _read_xml(self, parse=True):
+    def _read_xml(self, mode="text"):
         if self.xml_file:
-            xml = string = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
+            xml = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
         else:
-            xml = string = self.inv.sii_xml_request.decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
-        if parse:
-            xml = xmltodict.parse(string)
+            xml = self.inv.sii_xml_request.decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
+        if mode == "etree":
+            return etree.fromstring(xml)
+        if mode == "parse":
+            return xmltodict.parse(xml)
         return xml
 
     def _check_digest_caratula(self):
@@ -71,28 +73,14 @@ class UploadXMLWizard(models.TransientModel):
         return 0, 'Envio Ok'
 
     def _check_digest_dte(self, dte):
-        xml = etree.fromstring(self._read_xml(False))
-        if xml[0][0].tag == "{http://www.sii.cl/SiiDte}Caratula":
-            d = xml[0][1]
-            i = 0
-            while d[i].tag != '{http://www.sii.cl/SiiDte}Documento':
-                i +=1
-            string = etree.tostring(d[i])#doc
+        xml = self._read_xml("etree")
+        envio = xml.find("{http://www.sii.cl/SiiDte}SetDTE")#"{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text
+        for e in envio.findall("{http://www.sii.cl/SiiDte}DTE") :
+            string = etree.tostring(e.find("{http://www.sii.cl/SiiDte}Documento"))#doc
             mess = etree.tostring(etree.fromstring(string), method="c14n").replace(' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"','')# el replace es necesario debido a que python lo agrega solo
             our = base64.b64encode(self.inv.digest(mess))
-            (d[(i+1)][0][2][2].text)
-            if our != d[(i+1)][0][2][2].text:
+            if our != e.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text:
                 return 1, 'DTE No Recibido - Error de Firma'
-        else:
-            for d in xml[0]:
-                if d != xml[0][0] and d[0][0][0][0].text == dte['Encabezado']['IdDoc']['TipoDTE'] and d[0][0][0][1].text == dte['Encabezado']['IdDoc']['Folio']:
-                    while d[i].tag != '{http://www.sii.cl/SiiDte}Documento':
-                        i +=1
-                    string = etree.tostring(d[i])#doc
-                    mess = etree.tostring(etree.fromstring(string), method="c14n").replace(' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"','')# el replace es necesario debido a que python lo agrega solo
-                    our = base64.b64encode(self.inv.digest(mess))
-                    if our != d[(i+1)][0][2][2].text:
-                        return 1, 'DTE No Recibido - Error de Firma'
         return 0, 'DTE Recibido OK'
 
     def _validar_caratula(self, cara):
@@ -147,7 +135,7 @@ class UploadXMLWizard(models.TransientModel):
         return res
 
     def _validar_dtes(self):
-        envio = self._read_xml()
+        envio = self._read_xml('parse')
         if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
             res = {'RecepcionDTE' : self._validar_dte(envio['EnvioDTE']['SetDTE']['DTE']['Documento'])}
         else:
@@ -169,14 +157,14 @@ class UploadXMLWizard(models.TransientModel):
         return caratula
 
     def _receipt(self, IdRespuesta):
-        envio = self._read_xml()
-        xml = etree.fromstring(self._read_xml(False))
+        envio = self._read_xml('parse')
+        xml = self._read_xml('etree')
         resp = collections.OrderedDict()
         resp['NmbEnvio'] = self.filename or self.inv.sii_send_file_name
         resp['FchRecep'] = self.inv.time_stamp()
         resp['CodEnvio'] = self.inv._acortar_str(IdRespuesta, 10)
         resp['EnvioDTEID'] = xml[0].attrib['ID']
-        resp['Digest'] = xml[1][0][2][2].text
+        resp['Digest'] = xml.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text
         EstadoRecepEnv, RecepEnvGlosa = self._validar_caratula(envio['EnvioDTE']['SetDTE']['Caratula'])
         if EstadoRecepEnv == 0:
             EstadoRecepEnv, RecepEnvGlosa = self._check_digest_caratula()
@@ -228,7 +216,7 @@ class UploadXMLWizard(models.TransientModel):
         return att
 
     def do_receipt_deliver(self):
-        envio = self._read_xml()
+        envio = self._read_xml('parse')
         company_id = self.env['res.company'].search(
             [
                 ('vat','like', envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor'].replace('-',''))
@@ -314,7 +302,7 @@ class UploadXMLWizard(models.TransientModel):
         return res
 
     def _resultado(self, IdRespuesta):
-        envio = self._read_xml()
+        envio = self._read_xml('parse')
         if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
             return {'ResultadoDTE' : self._validar_dte_en_envio(envio['EnvioDTE']['SetDTE']['DTE']['Documento'],IdRespuesta)}
         else:
@@ -352,7 +340,7 @@ class UploadXMLWizard(models.TransientModel):
                 certp = signature_d['cert'].replace(
                     BC, '').replace(EC, '').replace('\n', '')
                 dte = self._resultado(IdRespuesta)
-        envio = self._read_xml()
+        envio = self._read_xml('parse')
         NroDetalles = len(envio['EnvioDTE']['SetDTE']['DTE'])
         if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
             NroDetalles = 1
@@ -453,7 +441,7 @@ class UploadXMLWizard(models.TransientModel):
                     'Recibo',
                     'recep')
                 receipts += "\n" + receipt
-        envio = self._read_xml()
+        envio = self._read_xml('parse')
         RutRecibe = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
         dict_caratula = self._caratula_recep(self.env['account.invoice'].format_vat(inv.company_id.vat), RutRecibe)
         caratula = dicttoxml.dicttoxml(dict_caratula, root=False, attr_type=False)
@@ -616,7 +604,8 @@ class UploadXMLWizard(models.TransientModel):
                 ('journal_id.type','=','purchase'),
                 ('journal_id.company_id', '=', company_id.id)
                 ],
-        )[0]
+                limit=1,
+            )
         return journal_sii
 
     def _create_inv(self, dte, company_id):
@@ -668,7 +657,7 @@ class UploadXMLWizard(models.TransientModel):
         return inv
 
     def do_create_inv(self):
-        envio = self._read_xml()
+        envio = self._read_xml('parse')
         resp = self.do_receipt_deliver()
         if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
             dte = envio['EnvioDTE']['SetDTE']['DTE']
@@ -728,7 +717,7 @@ class UploadXMLWizard(models.TransientModel):
 
     def do_create_po(self):
         #self.validate()
-        envio = self._read_xml()
+        envio = self._read_xml('parse')
         for dte in envio['EnvioDTE']['SetDTE']['DTE']:
             if dte['TipoDTE'] in ['34', '33']:
                 self._create_po(dte['Documento'])
