@@ -40,7 +40,7 @@ class ColaEnvio(models.Model):
                             _logger.info('Error en Envío automático')
                             _logger.info(str(e))
                     continue
-                if docs[0].sii_send_ident and docs[0].sii_message and docs[0].sii_result in ['Proceso','Rechazado']:
+                if docs[0].sii_send_ident and docs[0].sii_message and docs[0].sii_result in ['Proceso', 'Rechazado']:
                     c.unlink()
                     continue
                 else:
