@@ -62,9 +62,9 @@ except ImportError:
     _logger.info('Cannot import dicttoxml library')
 
 try:
-    from elaphe import barcode
+    import pdf417gen
 except ImportError:
-    _logger.info('Cannot import elaphe library')
+    _logger.info('Cannot import pdf417gen library')
 
 try:
     import M2Crypto
@@ -679,26 +679,19 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         rut = rut.replace('CL','')
         return rut
 
-    '''
-    Funcion creacion de imagen pdf417 basada en biblioteca elaphe
-     @author: Daniel Blanco Martin (daniel[at]blancomartin.cl)
-     @version: 2016-05-01
-    '''
     def pdf417bc(self, ted):
-        bc = barcode(
-            'pdf417',
+        bc = pdf417gen.encode(
             ted,
-            options = dict(
-                compact = False,
-                eclevel = 5,
-                columns = 13,
-                rowmult = 2,
-                rows = 3
-            ),
-            margin=20,
-            scale=1
+            security_level=5,
+            columns=13,
         )
-        return bc
+        image = pdf417gen.render_image(
+            bc,
+            padding=15,
+            scale=1,
+        )
+        return image
+
 
     '''
     Funcion usada en SII
