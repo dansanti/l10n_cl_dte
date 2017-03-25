@@ -68,7 +68,7 @@ class UploadXMLWizard(models.TransientModel):
         string = etree.tostring(xml[0])
         mess = etree.tostring(etree.fromstring(string), method="c14n")
         our = base64.b64encode(self.inv.digest(mess))
-        if our != e.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text:
+        if our != xml.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text:
             return 2, 'Envio Rechazado - Error de Firma'
         return 0, 'Envio Ok'
 
@@ -497,8 +497,9 @@ class UploadXMLWizard(models.TransientModel):
 
     def _create_prod(self, data):
         product_id = self.env['product.product'].create({
+            'sale_ok':False,
             'name': data['NmbItem'],
-            'lst_price': float(data['PrcItem']),
+            'lst_price': float(data['PrcItem'] if 'PrcItem' in data else data['MontoItem']),
             'categ_id': self._default_category(),
         })
         if 'CdgItem' in data:
@@ -552,9 +553,9 @@ class UploadXMLWizard(models.TransientModel):
         return [0,0,{
             'name': line['DescItem'] if 'DescItem' in line else line['NmbItem'],
             'product_id': product_id.id,
-            'price_unit': line['PrcItem'],
+            'price_unit': line['PrcItem'] if 'PrcItem' in line else price_subtotal,
             'discount': discount,
-            'quantity': line['QtyItem'],
+            'quantity': line['QtyItem'] if 'QtyItem' in line else 1,
             'account_id': account_id,
             'price_subtotal': price_subtotal,
             'invoice_line_tax_ids': [(6, 0, product_id.supplier_taxes_id.ids)],
@@ -562,16 +563,18 @@ class UploadXMLWizard(models.TransientModel):
 
     def _prepare_ref(self, ref):
         try:
-            tpo = self.env['sii.document_class'].search([('sii_code', '=', ref['TpoDocRef'])]).id
+            tpo = self.env['sii.document_class'].search([('sii_code', '=', ref['TpoDocRef'])])
         except:
-            tpo = False
+            tpo = self.env['sii.document_class'].search([('sii_code', '=', 801)])
+        if not tpo:
+            raise UserError(_('No existe el tipo de documento'))
         folio = ref['FolioRef']
         fecha = ref['FchRef']
         cod_ref = ref['CodRef'] if 'CodRef' in ref else None
         motivo = ref['RazonRef'] if 'RazonRef' in ref else None
         return [0,0,{
         'origen' : folio,
-        'sii_referencia_TpoDocRef' : tpo,
+        'sii_referencia_TpoDocRef' : tpo.id,
         'sii_referencia_CodRef' : cod_ref,
         'motivo' : motivo,
         'fecha_documento' : fecha,
@@ -647,14 +650,14 @@ class UploadXMLWizard(models.TransientModel):
             if inv.amount_total == monto_xml:
                 return inv
             #cuadrar en caso de descuadre por 1$
-            if (inv.amount_total - 1) == monto_xml or (inv.amount_total + 1) == monto_xml:
-                inv.amount_total = monto_xml
-                for t in inv.tax_line_ids:
-                    if t.tax_id.amount == float(dte['Encabezado']['Totales']['TasaIVA']):
-                        t.amount = float(dte['Encabezado']['Totales']['IVA'])
-                        t.base = float(dte['Encabezado']['Totales']['MntNeto'])
-            else:
-                raise UserError('¡El documento está completamente descuadrado!')
+            #if (inv.amount_total - 1) == monto_xml or (inv.amount_total + 1) == monto_xml:
+            inv.amount_total = monto_xml
+            for t in inv.tax_line_ids:
+                if t.tax_id.amount == float(dte['Encabezado']['Totales']['TasaIVA']):
+                    t.amount = float(dte['Encabezado']['Totales']['IVA'])
+                    t.base = float(dte['Encabezado']['Totales']['MntNeto'])
+            #else:
+            #    raise UserError('¡El documento está completamente descuadrado!')
         return inv
 
     def do_create_inv(self):

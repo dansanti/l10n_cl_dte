@@ -2,11 +2,11 @@
 {
     "name": """Chile - Web Services de Documentos Tributarios Electrónicos\
     """,
-    'version': '9.0.5.1.1',
+    'version': '9.0.5.1.2',
     'category': 'Localization/Chile',
     'sequence': 12,
     'author':  'Daniel Santibáñez Polanco, BMyA SA - Blanco Martín & Asociados, Odoo Chile',
-    'website': 'http://globalresponse.cl',
+    'website': 'https://globalresponse.cl',
     'license': 'AGPL-3',
     'summary': '',
     'description': """
