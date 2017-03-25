@@ -52,6 +52,13 @@ class UploadXMLWizard(models.TransientModel):
         result['domain'] = invoice_domain
         return result
 
+    def format_rut(self, RUTEmisor=None):
+        rut = RUTEmisor.replace('-','')
+        if int(rut[:-1]) < 10000000:
+            rut = '0' + str(int(rut))
+        rut = 'CL'+rut
+        return rut
+
     def _read_xml(self, mode="text"):
         if self.xml_file:
             xml = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
@@ -84,9 +91,14 @@ class UploadXMLWizard(models.TransientModel):
         return 0, 'DTE Recibido OK'
 
     def _validar_caratula(self, cara):
-        if not self.env['res.company'].search([('vat','like', cara['RutReceptor'].replace('-',''))]):#se usa like porque sii envía rut sin 0 adelante
+        if not self.env['res.company'].search([
+                ('vat','=', self.format_rut(cara['RutReceptor']))
+            ]):
             return 3, 'Rut no corresponde a nuestra empresa'
-        partner_id = self.env['res.partner'].search([('vat','like', cara['RutEmisor'].replace('-',''))])
+        partner_id = self.env['res.partner'].search([
+        ('active','=', True),
+        ('parent_id', '=', False),
+        ('vat','=', self.format_rut(cara['RutEmisor']))])
         if not partner_id and not self.inv:
             return 2, 'Rut no coincide con los registros'
         try:
@@ -112,7 +124,10 @@ class UploadXMLWizard(models.TransientModel):
         res['RUTEmisor'] = doc['Encabezado']['Emisor']['RUTEmisor']
         res['RUTRecep'] = doc['Encabezado']['Receptor']['RUTRecep']
         res['MntTotal'] = doc['Encabezado']['Totales']['MntTotal']
-        partner_id = self.env['res.partner'].search([('vat','like', doc['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
+        partner_id = self.env['res.partner'].search([
+        ('active','=', True),
+        ('parent_id', '=', False),
+        ('vat','=', self.format_rut(doc['Encabezado']['Emisor']['RUTEmisor']))])
         sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(doc['Encabezado']['IdDoc']['TipoDTE']))])
         res['EstadoRecepDTE'] = 0
         res['RecepDTEGlosa'] = 'DTE Recibido OK'
@@ -127,7 +142,9 @@ class UploadXMLWizard(models.TransientModel):
                 ('partner_id','=',partner_id.id),
                 ('sii_document_class_id','=',sii_document_class.id)
             ])
-        company_id = self.env['res.company'].search([('vat','like', doc['Encabezado']['Receptor']['RUTRecep'].replace('-',''))])
+        company_id = self.env['res.company'].search([
+                ('vat','=', self.format_rut(doc['Encabezado']['Receptor']['RUTRecep']))
+            ])
         if not company_id and (not docu or doc['Encabezado']['Receptor']['RUTRecep'] != self.env['account.invoice'].format_vat(docu.company_id.vat) ) :
             res['EstadoRecepDTE'] = 3
             res['RecepDTEGlosa'] = 'Rut no corresponde a la empresa esperada'
@@ -219,7 +236,7 @@ class UploadXMLWizard(models.TransientModel):
         envio = self._read_xml('parse')
         company_id = self.env['res.company'].search(
             [
-                ('vat','like', envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor'].replace('-',''))
+                ('vat','=', self.format_rut(envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor']))
             ],
             limit=1)
         id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
@@ -278,7 +295,10 @@ class UploadXMLWizard(models.TransientModel):
         res['RUTRecep'] = doc['Encabezado']['Receptor']['RUTRecep']
         res['MntTotal'] = doc['Encabezado']['Totales']['MntTotal']
         res['CodEnvio'] = str(IdRespuesta) + str(doc['Encabezado']['IdDoc']['Folio'])
-        partner_id = self.env['res.partner'].search([('vat','like', doc['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
+        partner_id = self.env['res.partner'].search([
+        ('active','=', True),
+        ('parent_id', '=', False),
+        ('vat','=', self.format_rut(doc['Encabezado']['Emisor']['RUTEmisor']))])
         sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(doc['Encabezado']['IdDoc']['TipoDTE']))])
         res['EstadoDTE'] = 0
         res['EstadoDTEGlosa'] = 'DTE Aceptado OK'
@@ -469,9 +489,7 @@ class UploadXMLWizard(models.TransientModel):
             giro_id = self.env['sii.activity.description'].create({
                 'name': data['GiroEmis'],
             })
-        rut = data['RUTEmisor'].replace('-','')
-        if int(rut[:-1]) < 10000000:
-            rut = '0' + str(int(rut))
+        rut = self.format_rut(data['RUTEmisor'])
         partner_id = self.env['res.partner'].create({
             'name': data['RznSoc'],
             'activity_description': giro_id.id,
@@ -581,7 +599,10 @@ class UploadXMLWizard(models.TransientModel):
         }]
 
     def _prepare_invoice(self, dte, company_id, journal_document_class_id):
-        partner_id = self.env['res.partner'].search([('vat','like', dte['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
+        partner_id = self.env['res.partner'].search([
+        ('active','=', True),
+        ('parent_id', '=', False),
+        ('vat','=', self.format_rut(dte['Encabezado']['Emisor']['RUTEmisor']))])
         if not partner_id:
             partner_id = self._create_partner(dte['Encabezado']['Emisor'])
         elif not partner_id.supplier:
@@ -621,10 +642,12 @@ class UploadXMLWizard(models.TransientModel):
             ('partner_id.document_number','=', dte['Encabezado']['Emisor']['RUTEmisor']),
         ])
         if not inv:
-            company_id = self.env['res.company'].search([('vat','like', dte['Encabezado']['Receptor']['RUTRecep'].replace('-',''))])
+            company_id = self.env['res.company'].search([
+                ('vat','=', self.format_rut(dte['Encabezado']['Receptor']['RUTRecep']))])
             journal_document_class_id = self._get_journal(dte['Encabezado']['IdDoc']['TipoDTE'], company_id)
             if not journal_document_class_id:
-                raise UserError('No existe Diario para el tipo de documento, por favor añada uno primero')
+                sii_document_class = self.env['sii.document_class'].search([('sii_code', '=', dte['Encabezado']['IdDoc']['TipoDTE'])])
+                raise UserError('No existe Diario para el tipo de documento %s, por favor añada uno primero, o ignore el documento' % sii_document_class.name.encode('UTF-8'))
             data = self._prepare_invoice(dte, company_id, journal_document_class_id)
             data['type'] = 'in_invoice'
             if dte['Encabezado']['IdDoc']['TipoDTE'] in ['54', '61']:
@@ -667,7 +690,7 @@ class UploadXMLWizard(models.TransientModel):
             dte = envio['EnvioDTE']['SetDTE']['DTE']
             company_id = self.env['res.company'].search(
                 [
-                    ('vat','like', dte['Documento']['Encabezado']['Receptor']['RUTRecep'].replace('-','')),
+                    ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
                 ],
                 limit=1)
             if company_id:
@@ -678,7 +701,7 @@ class UploadXMLWizard(models.TransientModel):
             for dte in envio['EnvioDTE']['SetDTE']['DTE']:
                 company_id = self.env['res.company'].search(
                     [
-                        ('vat','like', dte['Documento']['Encabezado']['Receptor']['RUTRecep'].replace('-','')),
+                        ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
                     ],
                     limit=1)
                 if company_id:
@@ -690,12 +713,17 @@ class UploadXMLWizard(models.TransientModel):
         return resp
 
     def _create_po(self, dte):
-        partner_id = self.env['res.partner'].search([('vat','like', dte['Encabezado']['Emisor']['RUTEmisor'].replace('-',''))])
+        partner_id = self.env['res.partner'].search([
+        ('active','=', True),
+        ('parent_id', '=', False),
+        ('vat','=', self.format_rut(dte['Encabezado']['Emisor']['RUTEmisor']))])
         if not partner_id:
             partner_id = self._create_partner(dte['Encabezado']['Emisor'])
         elif not partner_id.supplier:
             partner_id.supplier = True
-        company_id = self.env['res.company'].search([('vat','like', dte['Encabezado']['Receptor']['RUTRecep'].replace('-',''))])
+        company_id = self.env['res.company'].search([
+            ('vat','=', self.format_rut(dte['Encabezado']['Receptor']['RUTRecep']))
+            ])
         data = {
             'partner_ref' : dte['Encabezado']['IdDoc']['Folio'],
             'date_order' :dte['Encabezado']['IdDoc']['FchEmis'],
