@@ -470,7 +470,7 @@ class UploadXMLWizard(models.TransientModel):
                 'name': data['GiroEmis'],
             })
         rut = data['RUTEmisor'].replace('-','')
-        if int(rut) < 10000000:
+        if int(rut[:-1]) < 10000000:
             rut = '0' + str(int(rut))
         partner_id = self.env['res.partner'].create({
             'name': data['RznSoc'],
