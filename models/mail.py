@@ -12,7 +12,7 @@ class ProcessMails(models.Model):
         mail = super(ProcessMails, self).create(vals)
         if mail.message_type in ['email'] and mail.attachment_ids:
             for att in mail.attachment_ids:
-                if att.mimetype in ['text/plain'] and att.name.upper.find('.XML'):
+                if att.mimetype in ['text/plain'] and att.name.upper().find('.XML'):
                     vals={
                         'xml_file': att.datas,
                         'filename': att.name,
