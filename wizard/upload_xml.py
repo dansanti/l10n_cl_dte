@@ -639,7 +639,7 @@ class UploadXMLWizard(models.TransientModel):
             ('reference','=',dte['Encabezado']['IdDoc']['Folio']),
             ('type','in',['in_invoice','in_refund']),
             ('sii_document_class_id.sii_code','=',dte['Encabezado']['IdDoc']['TipoDTE']),
-            ('partner_id.document_number','=', dte['Encabezado']['Emisor']['RUTEmisor']),
+            ('partner_id.vat','=', self.format_rut(dte['Encabezado']['Emisor']['RUTEmisor'])),
         ])
         if not inv:
             company_id = self.env['res.company'].search([
