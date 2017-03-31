@@ -556,14 +556,40 @@ version="1.0">
             retorno.update({'sii_result': 'Enviado','sii_send_ident':respuesta_dict['RECEPCIONDTE']['TRACKID']})
         return retorno
 
+    def crear_intercambio(self):
+        rut = self.format_vat(self.partner_id.commercial_partner_id.vat )
+        xml, file_name, comp = self._crear_envio(RUTRecep=rut)
+        self.sii_xml_exchange = xml
+
+    ''' Código para realizar migración de la versión 9.0.5.2.0, a la 9.0.5.3.0, se eliminará en 9.0.6.0.0'''
+    def _read_xml(self, mode="text"):
+        if self.sii_xml_request:
+            xml = self.sii_xml_request.decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
+        if mode == "etree":
+            return etree.fromstring(xml)
+        if mode == "parse":
+            return xmltodict.parse(xml)
+        return xml
+
     def _create_attachment(self,):
-        data = base64.b64encode(self.sii_xml_request)
+        if not self.sii_xml_exchange:
+            try:
+                self.crear_intercambio()
+            except:
+                #Código compatibilidad
+                if self.sii_xml_request:
+                    xml = self._read_xml("etree")
+                    envio = xml.find("{http://www.sii.cl/SiiDte}SetDTE")
+                    if envio:
+                        self.sii_xml_dte = etree.tostring(envio.findall("{http://www.sii.cl/SiiDte}DTE")[0])
+                self.crear_intercambio()
         filename = (self.document_number+'.xml').replace(' ','')
-        url_path = '/web/binary/download_document?model=account.invoice\
-    &field=sii_xml_request&id=%s&filename=%s' % (self.id, filename)
+        url_path = '/web/binary/download_document_exchange?model=account.invoice\
+    &field=sii_xml_exchange&id=%s&filename=%s' % (self.id, filename)
         att = self.env['ir.attachment'].search([('name','=', filename), ('res_id','=', self.id), ('res_model','=','account.invoice')], limit=1)
         if att:
             return att
+        data = base64.b64encode(self.sii_xml_exchange)
         values = dict(
                         name=filename,
                         datas_fname=filename,
@@ -575,7 +601,6 @@ version="1.0">
                     )
         att = self.env['ir.attachment'].create(values)
         return att
-
 
     @api.multi
     def action_invoice_sent(self):
@@ -622,6 +647,17 @@ version="1.0">
         filename = (self.document_number+'.xml').replace(' ','')
         url_path = '/web/binary/download_document?model=account.invoice\
 &field=sii_xml_request&id=%s&filename=%s' % (self.id, filename)
+        return {
+            'type' : 'ir.actions.act_url',
+            'url': url_path,
+            'target': 'self',
+        }
+
+    @api.multi
+    def get_xml_exchange_file(self):
+        filename = (self.document_number+'.xml').replace(' ','')
+        url_path = '/web/binary/download_document?model=account.invoice\
+&field=sii_xml_exchange&id=%s&filename=%s' % (self.id, filename)
         return {
             'type' : 'ir.actions.act_url',
             'url': url_path,
@@ -778,8 +814,14 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     sii_message = fields.Text(
         string='SII Message',
         copy=False)
+    sii_xml_dte = fields.Text(
+        string='SII XML DTE',
+        copy=False)
     sii_xml_request = fields.Text(
         string='SII XML Request',
+        copy=False)
+    sii_xml_exchange = fields.Text(
+        string='SII XML Exchange',
         copy=False)
     sii_xml_response = fields.Text(
         string='SII XML Response',
@@ -1222,8 +1264,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             self.split_cert(certp), doc_id_number, type)
         self.sii_xml_request = einvoice
 
-    @api.multi
-    def do_dte_send(self, n_atencion=None):
+
+    def _crear_envio(self, n_atencion=None, RUTRecep="60803000-K"):
         dicttoxml.set_debug(False)
         DTEs = {}
         clases = {}
@@ -1284,7 +1326,6 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         for key in sorted(dtes.iterkeys()):
             documentos += '\n'+dtes[key]
         # firma del sobre
-        RUTRecep = "60803000-K" # RUT SII
         dtes = self.create_template_envio( RUTEmisor, RUTRecep,
             resol_data['dte_resolution_date'],
             resol_data['dte_resolution_number'],
@@ -1298,6 +1339,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         envio_dte = self.sign_full_xml(
             envio_dte, signature_d['priv_key'], certp,
             'SetDoc', env)
+        return envio_dte, file_name, company_id
+
+    @api.multi
+    def do_dte_send(self, n_atencion=None):
+        envio_dte, file_name, company_id = self._crear_envio(n_atencion, RUTRecep="60803000-K")
         result = self.send_xml_file(envio_dte, file_name, company_id)
         for inv in self:
             inv.write({'sii_xml_response':result['sii_xml_response'],
