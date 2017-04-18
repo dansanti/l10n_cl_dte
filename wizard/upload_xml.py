@@ -493,7 +493,7 @@ class UploadXMLWizard(models.TransientModel):
         partner_id = self.env['res.partner'].create({
             'name': data['RznSoc'],
             'activity_description': giro_id.id,
-            'vat': 'CL' + rut,
+            'vat': rut,
             'document_type_id': self.env.ref('l10n_cl_invoice.dt_RUT').id,
             'responsability_id': self.env.ref('l10n_cl_invoice.res_IVARI').id,
             'document_number': data['RUTEmisor'],
