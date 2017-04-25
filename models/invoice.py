@@ -577,7 +577,7 @@ version="1.0">
                 self.crear_intercambio()
             except:
                 #Código compatibilidad
-                if self.sii_xml_request:
+                if self.sii_xml_request and not self.sii_xml_dte:
                     xml = self._read_xml("etree")
                     envio = xml.find("{http://www.sii.cl/SiiDte}SetDTE")
                     if envio:
@@ -1262,7 +1262,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         einvoice = self.sign_full_xml(
             envelope_efact, signature_d['priv_key'],
             self.split_cert(certp), doc_id_number, type)
-        self.sii_xml_request = einvoice
+        self.sii_xml_dte = einvoice
 
 
     def _crear_envio(self, n_atencion=None, RUTRecep="60803000-K"):
@@ -1294,7 +1294,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 clases[inv.sii_document_class_id.sii_code] = []
             clases[inv.sii_document_class_id.sii_code].extend([{
                                                 'id':inv.id,
-                                                'envio': inv.sii_xml_request,
+                                                'envio': inv.sii_xml_dte,
                                                 'sii_batch_number': inv.sii_batch_number,
                                                 'sii_document_number':inv.sii_document_number
                                             }])
