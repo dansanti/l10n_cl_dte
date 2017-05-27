@@ -33,7 +33,8 @@ class ColaEnvio(models.Model):
                             d.sii_result = 'EnCola'
                         try:
                             docs.do_dte_send()
-                            c.tipo_trabajo = 'consulta'
+                            if docs[0].sii_send_ident:
+                                c.tipo_trabajo = 'consulta'
                         except Exception as e:
                             for d in docs:
                                 d.sii_result = 'NoEnviado'
@@ -46,7 +47,7 @@ class ColaEnvio(models.Model):
                 else:
                     for doc in docs :
                         doc.responsable_envio = c.user_id
-                    if c.tipo_trabajo == 'envio':
+                    if c.tipo_trabajo == 'envio' or not docs[0].sii_send_ident:
                         try:
                             docs.do_dte_send(c.n_atencion)
                             if docs[0].sii_result not in ['', 'NoEnviado']:
