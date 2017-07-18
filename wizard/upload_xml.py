@@ -544,9 +544,9 @@ class UploadXMLWizard(models.TransientModel):
                     query = [('default_code','=',line['CdgItem']['VlrCodigo'])]
             else:
                 for c in line['CdgItem']:
-                    if line['CdgItem']['TpoCodigo'] == 'ean13':
+                    if c['TpoCodigo'] == 'ean13':
                         query = [('barcode','=',c['VlrCodigo'])]
-                    else:
+                    elif c['TpoCodigo'] == 'INT1':
                         query = [('default_code','=',c['VlrCodigo'])]
         if not query:
             query = [('name','=',line['NmbItem'])]
