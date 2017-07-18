@@ -535,7 +535,8 @@ class UploadXMLWizard(models.TransientModel):
         return product_id
 
     def _buscar_producto(self, line):
-        query = product_id = False
+        query = False
+        product_id = False
         if 'CdgItem' in line:
             if 'VlrCodigo' in line['CdgItem']:
                 if line['CdgItem']['TpoCodigo'] == 'ean13':
@@ -552,7 +553,13 @@ class UploadXMLWizard(models.TransientModel):
             query = [('name','=',line['NmbItem'])]
         product_id = self.env['product.product'].search(query)
         if not product_id:
-            product_id = self._create_prod(line)
+            query2 = [('name','=',line['NmbItem'])]
+            for q in query:
+                if q[0] == 'default_code':
+                    query2 = [('product_code', '=', q[2])]
+            product_id = self.env['product.supplierinfo'].search(query2).product_id
+            if not product_id:
+                product_id = self._create_prod(line)
         return product_id
 
     def _prepare_line(self, line, journal, type):
