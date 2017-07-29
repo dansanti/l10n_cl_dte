@@ -20,10 +20,13 @@ to be legally enabled to use the service. If your service provider is not \
 listed here, please send us an email to soporte@blancomartin.cl in order to \
 add the option.
 ''', default='SIIHOMO')
-    dte_resolution_number = fields.Char('SII Exempt Resolution Number',
-                                        help='''This value must be provided \
+    dte_resolution_number = fields.Char(
+        string='SII Exempt Resolution Number',
+        help='''This value must be provided \
 and must appear in your pdf or printed tribute document, under the electronic \
-stamp to be legally valid.''')
+stamp to be legally valid.''',
+        default='0',
+    )
     dte_resolution_date = fields.Date('SII Exempt Resolution Date')
     sii_regional_office_id = fields.Many2one(
         'sii.regional.offices', string='SII Regional Office')
