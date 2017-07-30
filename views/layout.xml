@@ -75,13 +75,13 @@
                         <tbody>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Señor (es):</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.partner_id.name"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.commercial_partner_id.name"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Fecha:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><t t-if="'date_invoice' in o and o.date_invoice"><span t-field="o.date_invoice"/></t></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>RUT:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.partner_id.document_number"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.commercial_partner_id.document_number"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Comuna:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><span t-field="o.partner_id.city_id.name"/></td>
                           </tr>

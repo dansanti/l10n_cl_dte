@@ -984,23 +984,23 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
 
     def _receptor(self):
         Receptor = collections.OrderedDict()
-        if not self.partner_id.vat and not self._es_boleta():
+        if not self.commercial_partner_id.vat and not self._es_boleta():
             raise UserError("Debe Ingresar RUT Receptor")
         #if self._es_boleta():
         #    Receptor['CdgIntRecep']
-        Receptor['RUTRecep'] = self.format_vat(self.partner_id.vat)
-        Receptor['RznSocRecep'] = self._acortar_str(self.partner_id.name, 100)
+        Receptor['RUTRecep'] = self.format_vat(self.commercial_partner_id.vat)
+        Receptor['RznSocRecep'] = self._acortar_str(self.commercial_partner_id.name, 100)
         if not self._es_boleta():
             if not self.activity_description:
                 raise UserError(_('Seleccione giro del partner'))
             Receptor['GiroRecep'] = self._acortar_str(self.activity_description.name, 40)
-        if self.partner_id.phone:
-            Receptor['Contacto'] = self._acortar_str(self.partner_id.phone or self.partner_id.dte_email or self.partner_id.email, 80)
-        if self.partner_id.dte_email and not self._es_boleta():
-            Receptor['CorreoRecep'] = self.partner_id.dte_email or self.partner_id.email
-        Receptor['DirRecep'] = self._acortar_str(self.partner_id.street+ ' ' + (self.partner_id.street2 or ''), 70)
-        Receptor['CmnaRecep'] = self.partner_id.city_id.name
-        Receptor['CiudadRecep'] = self.partner_id.city
+        if self.partner_id.phone or self.commercial_partner_id.phone:
+            Receptor['Contacto'] = self._acortar_str(self.partner_id.phone or self.commercial_partner_id.phone or self.partner_id.email, 80)
+        if (self.commercial_partner_id.email or self.commercial_partner_id.dte_email or self.partner_id.email or self.partner_id.dte_email) and not self._es_boleta():
+            Receptor['CorreoRecep'] = self.commercial_partner_id.dte_email or self.partner_id.dte_email or self.commercial_partner_id.email or self.partner_id.email
+        Receptor['DirRecep'] = self._acortar_str(self.commercial_partner_id.street+ ' ' + (self.commercial_partner_id.street2 or ''), 70)
+        Receptor['CmnaRecep'] = self.commercial_partner_id.city_id.name
+        Receptor['CiudadRecep'] = self.commercial_partner_id.city
         return Receptor
 
     def _totales(self, MntExe=0, no_product=False, taxInclude=False):
@@ -1061,10 +1061,10 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         result['TED']['DD']['TD'] = self.sii_document_class_id.sii_code
         result['TED']['DD']['F']  = folio
         result['TED']['DD']['FE'] = self.date_invoice
-        if not self.partner_id.vat:
+        if not self.commercial_partner_id.vat:
             raise UserError(_("Fill Partner VAT"))
-        result['TED']['DD']['RR'] = self.format_vat(self.partner_id.vat)
-        result['TED']['DD']['RSR'] = self._acortar_str(self.partner_id.name,40)
+        result['TED']['DD']['RR'] = self.format_vat(self.commercial_partner_id.vat)
+        result['TED']['DD']['RSR'] = self._acortar_str(self.commercial_partner_id.name,40)
         result['TED']['DD']['MNT'] = int(round(self.amount_total))
         if no_product:
             result['TED']['DD']['MNT'] = 0
@@ -1381,7 +1381,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         url = server_url[self.company_id.dte_service_provider] + 'QueryEstDte.jws?WSDL'
         ns = 'urn:'+ server_url[self.company_id.dte_service_provider] + 'QueryEstDte.jws'
         _server = SOAPProxy(url, ns)
-        receptor = self.format_vat(self.partner_id.vat)
+        receptor = self.format_vat(self.commercial_partner_id.vat)
         date_invoice = datetime.strptime(self.date_invoice, "%Y-%m-%d").strftime("%d-%m-%Y")
         rut = signature_d['subject_serial_number']
         respuesta = _server.getEstDte(rut[:8],
