@@ -1374,7 +1374,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         elif resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == "RCT":
             self.sii_result = "Rechazado"
             _logger.info(resp)
-            status = {'warning':{'title':_('Error RCT'), 'message': _(resp['SII:RESPUESTA']['GLOSA'])}}
+            status = {'warning':{'title':_('Error RCT'), 'message': _(resp['SII:RESPUESTA']['SII:RESP_HDR']['GLOSA'])}}
         return status
 
     def _get_dte_status(self, signature_d, token):
