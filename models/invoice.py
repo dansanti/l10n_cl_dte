@@ -991,9 +991,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         Receptor['RUTRecep'] = self.format_vat(self.commercial_partner_id.vat)
         Receptor['RznSocRecep'] = self._acortar_str(self.commercial_partner_id.name, 100)
         if not self._es_boleta():
-            if not self.commercial_partner.activity_description:
+            if not self.commercial_partner_id.activity_description:
                 raise UserError(_('Seleccione giro del partner'))
-            Receptor['GiroRecep'] = self._acortar_str(self.commercial_partner.activity_description.name, 40)
+            Receptor['GiroRecep'] = self._acortar_str(self.commercial_partner_id.activity_description.name, 40)
         if self.partner_id.phone or self.commercial_partner_id.phone:
             Receptor['Contacto'] = self._acortar_str(self.partner_id.phone or self.commercial_partner_id.phone or self.partner_id.email, 80)
         if (self.commercial_partner_id.email or self.commercial_partner_id.dte_email or self.partner_id.email or self.partner_id.dte_email) and not self._es_boleta():
