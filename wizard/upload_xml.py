@@ -67,7 +67,11 @@ class UploadXMLWizard(models.TransientModel):
         if mode == "etree":
             return etree.fromstring(xml)
         if mode == "parse":
-            return xmltodict.parse(xml)
+            envio = xmltodict.parse(xml)
+            try:
+                return envio['EnvioDTE']
+            except:
+                return envio
         return xml
 
     def _check_digest_caratula(self):
@@ -153,11 +157,11 @@ class UploadXMLWizard(models.TransientModel):
 
     def _validar_dtes(self):
         envio = self._read_xml('parse')
-        if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
-            res = {'RecepcionDTE' : self._validar_dte(envio['EnvioDTE']['SetDTE']['DTE']['Documento'])}
+        if 'Documento' in envio['SetDTE']['DTE']:
+            res = {'RecepcionDTE' : self._validar_dte(envio['SetDTE']['DTE']['Documento'])}
         else:
             res = []
-            for doc in envio['EnvioDTE']['SetDTE']['DTE']:
+            for doc in envio['SetDTE']['DTE']:
                 res.extend([ {'RecepcionDTE' : self._validar_dte(doc['Documento'])} ])
         return res
 
@@ -182,15 +186,15 @@ class UploadXMLWizard(models.TransientModel):
         resp['CodEnvio'] = self.inv._acortar_str(IdRespuesta, 10)
         resp['EnvioDTEID'] = xml[0].attrib['ID']
         resp['Digest'] = xml.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text
-        EstadoRecepEnv, RecepEnvGlosa = self._validar_caratula(envio['EnvioDTE']['SetDTE']['Caratula'])
+        EstadoRecepEnv, RecepEnvGlosa = self._validar_caratula(envio['SetDTE']['Caratula'])
         if EstadoRecepEnv == 0:
             EstadoRecepEnv, RecepEnvGlosa = self._check_digest_caratula()
-        resp['RutEmisor'] = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
-        resp['RutReceptor'] = envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor']
+        resp['RutEmisor'] = envio['SetDTE']['Caratula']['RutEmisor']
+        resp['RutReceptor'] = envio['SetDTE']['Caratula']['RutReceptor']
         resp['EstadoRecepEnv'] = EstadoRecepEnv
         resp['RecepEnvGlosa'] = RecepEnvGlosa
-        NroDte = len(envio['EnvioDTE']['SetDTE']['DTE'])
-        if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
+        NroDte = len(envio['SetDTE']['DTE'])
+        if 'Documento' in envio['SetDTE']['DTE']:
             NroDte = 1
         resp['NroDTE'] = NroDte
         resp['item'] = self._validar_dtes()
@@ -234,9 +238,11 @@ class UploadXMLWizard(models.TransientModel):
 
     def do_receipt_deliver(self):
         envio = self._read_xml('parse')
+        if 'Caratula' not in envio['SetDTE']:
+           return True
         company_id = self.env['res.company'].search(
             [
-                ('vat','=', self.format_rut(envio['EnvioDTE']['SetDTE']['Caratula']['RutReceptor']))
+                ('vat','=', self.format_rut(envio['SetDTE']['Caratula']['RutReceptor']))
             ],
             limit=1)
         id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
@@ -252,14 +258,14 @@ class UploadXMLWizard(models.TransientModel):
         certp = signature_d['cert'].replace(
             BC, '').replace(EC, '').replace('\n', '')
         recep = self._receipt(IdRespuesta)
-        NroDetalles = len(envio['EnvioDTE']['SetDTE']['DTE'])
+        NroDetalles = len(envio['SetDTE']['DTE'])
         dicttoxml.set_debug(False)
         resp_dtes = dicttoxml.dicttoxml(recep, root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
         RecepcionEnvio = '''<RecepcionEnvio>
                     {0}
                     </RecepcionEnvio>
                     '''.format(resp_dtes)
-        RutRecibe = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
+        RutRecibe = envio['SetDTE']['Caratula']['RutEmisor']
         caratula_recepcion_envio = self._caratula_respuesta(
             self.env['account.invoice'].format_vat(company_id.vat),
             RutRecibe,
@@ -323,10 +329,10 @@ class UploadXMLWizard(models.TransientModel):
 
     def _resultado(self, IdRespuesta):
         envio = self._read_xml('parse')
-        if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
+        if 'Documento' in envio['SetDTE']['DTE']:
             return {'ResultadoDTE' : self._validar_dte_en_envio(envio['EnvioDTE']['SetDTE']['DTE']['Documento'],IdRespuesta)}
         else:
-            for doc in envio['EnvioDTE']['SetDTE']['DTE']:
+            for doc in envio['SetDTE']['DTE']:
                 if doc['Documento']['Encabezado']['IdDoc']['Folio'] == self.inv.reference:
                     return {'ResultadoDTE' : self._validar_dte_en_envio(doc['Documento'], IdRespuesta)}
         return False
@@ -361,12 +367,12 @@ class UploadXMLWizard(models.TransientModel):
                     BC, '').replace(EC, '').replace('\n', '')
                 dte = self._resultado(IdRespuesta)
         envio = self._read_xml('parse')
-        NroDetalles = len(envio['EnvioDTE']['SetDTE']['DTE'])
-        if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
+        NroDetalles = len(envio['SetDTE']['DTE'])
+        if 'Documento' in envio['SetDTE']['DTE']:
             NroDetalles = 1
         dicttoxml.set_debug(False)
         ResultadoDTE = dicttoxml.dicttoxml(dte, root=False, attr_type=False).replace('<item>','\n').replace('</item>','\n')
-        RutRecibe = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
+        RutRecibe = envio['SetDTE']['Caratula']['RutEmisor']
         caratula_validacion_comercial = self._caratula_respuesta(
             self.env['account.invoice'].format_vat(inv.company_id.vat),
             RutRecibe,
@@ -462,7 +468,7 @@ class UploadXMLWizard(models.TransientModel):
                     'recep')
                 receipts += "\n" + receipt
         envio = self._read_xml('parse')
-        RutRecibe = envio['EnvioDTE']['SetDTE']['Caratula']['RutEmisor']
+        RutRecibe = envio['SetDTE']['Caratula']['RutEmisor']
         dict_caratula = self._caratula_recep(self.env['account.invoice'].format_vat(inv.company_id.vat), RutRecibe)
         caratula = dicttoxml.dicttoxml(dict_caratula, root=False, attr_type=False)
         envio_dte = self._envio_recep(caratula, receipts)
@@ -498,7 +504,7 @@ class UploadXMLWizard(models.TransientModel):
             'responsability_id': self.env.ref('l10n_cl_invoice.res_IVARI').id,
             'document_number': data['RUTEmisor'],
             'street': data['DirOrigen'],
-            'city':data['CiudadOrigen'],
+            'city':data['CiudadOrigen'] if 'CiudadOrigen' in data else '',
             'company_type':'company',
             'supplier': True,
         })
@@ -693,26 +699,32 @@ class UploadXMLWizard(models.TransientModel):
     def do_create_inv(self):
         envio = self._read_xml('parse')
         resp = self.do_receipt_deliver()
-        if 'Documento' in envio['EnvioDTE']['SetDTE']['DTE']:
-            dte = envio['EnvioDTE']['SetDTE']['DTE']
+        if 'Documento' in envio['SetDTE']['DTE']:
+            dte = envio['SetDTE']['DTE']
             company_id = self.env['res.company'].search(
                 [
                     ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
                 ],
                 limit=1)
             if company_id:
-                self.inv = self._create_inv(dte['Documento'], company_id)
+                try:
+                    self.inv = self._create_inv(dte['Documento'], company_id)
+                except Exception as e:
+                    _logger.warning('Error en 1 factura con error:  %s' % str(e))
                 #if self.inv:
                 #    self.inv.sii_xml_response = resp['warning']['message']
         else:
-            for dte in envio['EnvioDTE']['SetDTE']['DTE']:
+            for dte in envio['SetDTE']['DTE']:
                 company_id = self.env['res.company'].search(
                     [
                         ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
                     ],
                     limit=1)
                 if company_id:
-                    self.inv = self._create_inv(dte['Documento'], company_id)
+                    try:
+                        self.inv = self._create_inv(dte['Documento'], company_id)
+                    except Exception as e:
+                        _logger.warning('Error en 1 factura con error:  %s' % str(e))
                 #    if self.inv:
                 #        self.inv.sii_xml_response = resp['warning']['message']
         if not self.inv:
@@ -757,7 +769,7 @@ class UploadXMLWizard(models.TransientModel):
     def do_create_po(self):
         #self.validate()
         envio = self._read_xml('parse')
-        for dte in envio['EnvioDTE']['SetDTE']['DTE']:
+        for dte in envio['SetDTE']['DTE']:
             if dte['TipoDTE'] in ['34', '33']:
                 self._create_po(dte['Documento'])
             elif dte['56','61']: # es una nota
