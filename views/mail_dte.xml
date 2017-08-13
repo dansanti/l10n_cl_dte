@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="dte_view_tree" model="ir.ui.view">
+    <field name="name">dte.tree</field>
+    <field name="model">mail.message.dte</field>
+    <field name="arch" type="xml">
+      <tree string="Dtes">
+        <field name="name"/>
+        <field name="mail_id"/>
+        <field name="document_ids"  />
+      </tree>
+    </field>
+  </record>
+
+  <record id="dte_document_view_tree" model="ir.ui.view">
+    <field name="name">dte.tree</field>
+    <field name="model">mail.message.dte.document</field>
+    <field name="arch" type="xml">
+      <tree string="Dtes">
+        <field name="date" />
+        <field name="sii_document_class_id" />
+        <field name="number" />
+        <field name="new_partner" />
+        <field name="partner_id" />
+        <field name="amount" />
+        <field name="currency_id" />
+        <field name="invoice_line_ids" />
+        <field name="company_id" />
+        <field name="dte_id" />
+        <button name="acept_document" string="Aceptar" type="object"/>
+        <button name="reject_document" string="Rechazar" type="object"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="dte_view_form" model="ir.ui.view">
+    <field name="name">dte.form</field>
+    <field name="model">mail.message.dte</field>
+    <field name="arch" type="xml">
+      <form string="Mail DTE Process">
+        <header>
+          <button name="process_message" string="Procesar Envío" type="object" />
+          <button name="reject_document" string="Rechazar" type="object"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="mail_id"/>
+          </group>
+          <notebook>
+            <page string="Documentos">
+              <field name="document_ids" editable="bottom" widget="one2many">
+                <tree editable="top/bottom">
+                  <field name="date" />
+                  <field name="sii_document_class_id" />
+                  <field name="number" />
+                  <field name="new_partner" />
+                  <field name="partner_id" />
+                  <field name="dte_id" invisible="True"/>
+                  <field name="amount" />
+                  <field name="currency_id" />
+                  <field name="invoice_line_ids" options="{'no_create_edit':True}"/>
+                  <field name="company_id" />
+                </tree>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <div class="oe_chatter">
+            <field name="message_follower_ids" widget="mail_followers"/>
+            <field name="message_ids" widget="mail_thread"/>
+        </div>
+      </form>
+    </field>
+  </record>
+
+  <record id="dte_document_view_form" model="ir.ui.view">
+    <field name="name">dte.form</field>
+    <field name="model">mail.message.dte.document</field>
+    <field name="arch" type="xml">
+      <form string="Mail DTE Process">
+        <header>
+            <button name="acept_document" string="Aceptar" type="object"/>
+            <button name="reject_document" string="Rechazar" type="object"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="dte_id" />
+            <field name="new_partner" />
+            <field name="partner_id" />
+            <field name="number" />
+            <field name="sii_document_class_id" />
+            <field name="amount" />
+            <field name="currency_id" />
+            <field name="invoice_id" />
+            <field name="company_id" />
+          </group>
+          <notebook>
+            <page string="Líneas del documento">
+              <field name="invoice_line_ids" editable="bottom" widget="one2many">
+                <tree editable="top/bottom">
+                  <field name="document_id" invisible="True"/>
+                  <field name="product_id" />
+                  <field name="new_product" />
+                  <field name="quantity" />
+                  <field name="price_unit" />
+                  <field name="price_subtotal" />
+                  <field name="currency_id" invisible="True"/>
+                </tree>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <div class="oe_chatter">
+            <field name="message_follower_ids" widget="mail_followers"/>
+            <field name="message_ids" widget="mail_thread"/>
+        </div>
+      </form>
+    </field>
+  </record>
+
+  <record id="dte_document_lines_view_form" model="ir.ui.view">
+    <field name="name">dte.form</field>
+    <field name="model">mail.message.dte.document.line</field>
+    <field name="arch" type="xml">
+      <form string="Mail DTE Process">
+        <sheet>
+          <group>
+            <field name="document_id" />
+            <field name="product_id" />
+            <field name="new_product" />
+            <field name="quantity" />
+            <field name="price_unit" />
+            <field name="price_subtotal" />
+            <field name="currency_id" />
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record model="ir.ui.view" id="dte_document_search_view">
+       <field name="name">dte.document.search</field>
+       <field name="model">mail.message.dte.document</field>
+       <field name="arch" type="xml">
+           <search>
+                <field name="number"/>
+           </search>
+       </field>
+   </record>
+
+  <record id="action_dte_process" model="ir.actions.act_window">
+      <field name="type">ir.actions.act_window</field>
+      <field name="name">Recepcionar XML de Envío</field>
+      <field name="res_model">mail.message.dte.document</field>
+      <field name="view_type">form</field>
+      <field name="target">current</field>
+  </record>
+
+  <record id="act_xml_recept" model="ir.actions.act_window">
+      <field name="type">ir.actions.act_window</field>
+      <field name="name">XML Recepcionados</field>
+      <field name="res_model">mail.message.dte</field>
+      <field name="view_type">form</field>
+      <field name="target">current</field>
+  </record>
+
+  <menuitem
+     id="menu_recept_xml"
+     action="action_dte_process"
+     parent="purchase.menu_purchase_control" />
+
+  <menuitem
+     action="action_dte_process"
+     id="menu_action_recept_xml"
+     parent="account.menu_finance_payables" />
+
+  <menuitem
+      name="XML Recibidos"
+      action="act_xml_recept"
+      id="menu_action_xml_recept"
+      parent="l10n_cl_partner_activities.menu_sii_config"/>
+</odoo>

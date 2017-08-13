@@ -8,9 +8,12 @@
                 <form string="SII DTE Upload XML Wizard">
                     <group>
                         <field name="inv" invisible="True"/>
+                        <field name="dte_id" invisible="True"/>
+                        <field name="document_id" invisible="True"/>
                         <field name="xml_file" filename="filename" required="True"/>
                         <field name="filename" invisible="True"/>
                         <field name="action" widget="radio"/>
+                        <field name="option" widget="radio"/>
                     </group>
                     <footer>
                         <button string="Confirm" name="confirm" type="object" class="oe_highlight" />
