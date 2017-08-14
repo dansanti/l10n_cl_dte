@@ -461,7 +461,7 @@ class UploadXMLWizard(models.TransientModel):
         self.document_id.message_post(
             body='XML de Rechazo Comercial, Estado: %s, Glosa: %s' % (dte['ResultadoDTE']['EstadoDTE'], dte['ResultadoDTE']['EstadoDTEGlosa']),
             subject='XML de Validación Comercial',
-            partner_ids=[self.env.user.partner_id.id],
+            partner_ids=[self.document_id.partner_id.id],
             attachment_ids=[ att.id ],
             message_type='comment',
             subtype='mt_comment')
