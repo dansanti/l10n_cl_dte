@@ -898,17 +898,17 @@ class UploadXMLWizard(models.TransientModel):
         resp = self.do_receipt_deliver()
         dtes = self._get_dtes()
         for dte in dtes:
-            #try:
-            company_id = self.env['res.company'].search(
-                [
-                    ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
-                ],
-                limit=1)
-            pre = self._create_pre(dte['Documento'], company_id)
-            if pre:
-                created.append(pre.id)
-            #except Exception as e:
-            #    _logger.warning('Error en 1 factura con error:  %s' % str(e))
+            try:
+                company_id = self.env['res.company'].search(
+                    [
+                        ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
+                    ],
+                    limit=1)
+                pre = self._create_pre(dte['Documento'], company_id)
+                if pre:
+                    created.append(pre.id)
+            except Exception as e:
+                _logger.warning('Error en 1 factura con error:  %s' % str(e))
                 #    if self.inv:
                 #        self.inv.sii_xml_response = resp['warning']['message']
         return created
@@ -916,17 +916,17 @@ class UploadXMLWizard(models.TransientModel):
     def do_create_inv(self):
         dtes = self._get_dtes()
         for dte in dtes:
-        #try:
-            company_id = self.env['res.company'].search(
-                [
-                    ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
-                ],
-                limit=1)
-            self.inv = self._create_inv(dte['Documento'], company_id)
-            if self.document_id :
-                self.document_id.invoice_id = self.inv.id
-        #    except Exception as e:
-        #        _logger.warning('Error en 1 factura con error:  %s' % str(e))
+            try:
+                company_id = self.env['res.company'].search(
+                    [
+                        ('vat','=', self.format_rut(dte['Documento']['Encabezado']['Receptor']['RUTRecep'])),
+                    ],
+                    limit=1)
+                self.inv = self._create_inv(dte['Documento'], company_id)
+                if self.document_id :
+                    self.document_id.invoice_id = self.inv.id
+            except Exception as e:
+                _logger.warning('Error en 1 factura con error:  %s' % str(e))
                 #    if self.inv:
                 #        self.inv.sii_xml_response = resp['warning']['message']
         if not self.inv:
