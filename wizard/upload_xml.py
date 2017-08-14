@@ -424,7 +424,7 @@ class UploadXMLWizard(models.TransientModel):
         IdRespuesta = self.env['ir.sequence'].browse(id_seq).next_by_id()
         for doc in self.document_id:
             try:
-                signature_d = self.inv.get_digital_signature(doc.document_id.company_id)
+                signature_d = self.inv.get_digital_signature(doc.company_id)
             except:
                 raise UserError(_('''There is no Signer Person with an \
             authorized signature for you in the system. Please make sure that \
