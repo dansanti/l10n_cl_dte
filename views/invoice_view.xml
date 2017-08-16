@@ -40,6 +40,15 @@
                             <field name='sii_xml_request' attrs="{'invisible':[('sii_result', '=', '')]}" readonly="1"/>
                         </group>
                     </page>
+                    <page name="client_claim" string="Registro de Reclamo en SII">
+                      <header>
+                        <button name="get_dte_claim" string="Consultar estado de Reclamo" type="object"/>
+                        <field name='claim' widget="statusbar"/>
+                      </header>
+                      <group>
+                        <field name="claim_description" />
+                      </group>
+                    </page>
                 </notebook>
             </field>
         </record>
@@ -69,6 +78,14 @@
                         <field name='sii_receipt' string="XML de Recepción de mercaderías" readonly="1"/>
                         <field name='sii_message' string="XML de Validación Comercial" readonly="1"/>
                         <field name="sii_xml_request"  readonly="1" />
+                      </group>
+                    </page>
+                    <page name="vendor_claim" string="Registro de Reclamo en SII">
+                      <header>
+                        <field name='claim' widget="statusbar"/>
+                      </header>
+                      <group>
+                        <field name="claim_description" />
                       </group>
                     </page>
                 </notebook>

@@ -111,7 +111,15 @@ afeqWjiRVMvV4+s4Q==</FRMA></CAF><TSTED>2014-04-24T12:02:20</TSTED></DD>\
 fHlAa7j08Xff95Yb2zg31sJt6lMjSKdOK+PQp25clZuECig==</FRMT></TED>"""
 result = xmltodict.parse(timbre)
 
-server_url = {'SIIHOMO':'https://maullin.sii.cl/DTEWS/','SII':'https://palena.sii.cl/DTEWS/'}
+server_url = {
+    'SIIHOMO':'https://maullin.sii.cl/DTEWS/',
+    'SII':'https://palena.sii.cl/DTEWS/',
+}
+
+claim_url = {
+    'SIIHOMO': 'https://ws2.sii.cl/WSREGISTRORECLAMODTECERT/registroreclamodteservice',
+    'SII':'https://ws1.sii.cl/WSREGISTRORECLAMODTE/registroreclamodteservice',
+}
 
 BC = '''-----BEGIN CERTIFICATE-----\n'''
 EC = '''\n-----END CERTIFICATE-----\n'''
@@ -865,6 +873,19 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             default=False,
             readonly=True,
             states={'draft': [('readonly', False)]})
+    claim = fields.Selection(
+        [
+            ('ACD', 'Acepta Contenido del Documento'),
+            ('RCD', 'Reclamo al  Contenido del Documento '),
+            ('ERM', ' Otorga  Recibo  de  Mercaderías  o Servicios'),
+            ('RFP', 'Reclamo por Falta Parcial de Mercaderías'),
+            ('RFT', 'Reclamo por Falta Total de Mercaderías'),
+        ],
+        string="Reclamo",
+    )
+    claim_description = fields.Char(
+        string="Detalle Reclamo",
+    )
 
     @api.multi
     def get_related_invoices_data(self):
@@ -1358,7 +1379,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         ns = 'urn:'+ server_url[self.company_id.dte_service_provider] + 'QueryEstUp.jws'
         _server = SOAPProxy(url, ns)
         rut = self.format_vat(self.company_id.vat, con_cero=True)
-        respuesta = _server.getEstUp(rut[:8], str(rut[-1]),track_id,token)
+        respuesta = _server.getEstUp(
+            rut[:8],
+            str(rut[-1]),
+            track_id,
+            token)
         self.sii_receipt = respuesta
         resp = xmltodict.parse(respuesta)
         status = False
@@ -1384,17 +1409,19 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         receptor = self.format_vat(self.commercial_partner_id.vat)
         date_invoice = datetime.strptime(self.date_invoice, "%Y-%m-%d").strftime("%d-%m-%Y")
         rut = signature_d['subject_serial_number']
-        respuesta = _server.getEstDte(rut[:8],
-                                      str(rut[-1]),
-                                      self.company_id.vat[2:-1],
-                                      self.company_id.vat[-1],
-                                      receptor[:8],
-                                      receptor[-1],
-                                      str(self.sii_document_class_id.sii_code),
-                                      str(self.sii_document_number),
-                                      date_invoice,
-                                      str(int(self.amount_total)),
-                                      token)
+        respuesta = _server.getEstDte(
+            rut[:8],
+            str(rut[-1]),
+            self.company_id.vat[2:-1],
+            self.company_id.vat[-1],
+            receptor[:8],
+            receptor[-1],
+            str(self.sii_document_class_id.sii_code),
+            str(self.sii_document_number),
+            date_invoice,
+            str(int(self.amount_total)),
+            token,
+        )
         self.sii_message = respuesta
         resp = xmltodict.parse(respuesta)
         if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == '2':
@@ -1417,11 +1444,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             seed = self.get_seed(self.company_id)
             template_string = self.create_template_seed(seed)
             seed_firmado = self.sign_seed(
-                template_string, signature_d['priv_key'],
+                template_string,
+                signature_d['priv_key'],
                 signature_d['cert'])
             token = self.get_token(seed_firmado,self.company_id)
         except:
-            _logger.info(connection_status)
             raise UserError(connection_status)
         if not self.sii_send_ident:
             raise UserError('No se ha enviado aún el documento, aún está en cola de envío interna en odoo')
@@ -1430,6 +1457,76 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             if self.sii_result != 'Proceso':
                 return status
         return self._get_dte_status(signature_d, token)
+
+    def _set_dte_claim(self, ):
+        try:
+            signature_d = self.get_digital_signature_pem(
+                self.company_id)
+            seed = self.get_seed(self.company_id)
+            template_string = self.create_template_seed(seed)
+            seed_firmado = self.sign_seed(
+                template_string,
+                signature_d['priv_key'],
+                signature_d['cert'])
+            token = self.get_token(seed_firmado,self.company_id)
+        except:
+            raise UserError(connection_status)
+        url = claim_url[self.company_id.dte_service_provider] + '?wsdl'
+        _server = Client(
+            url,
+            headers= {
+                'Cookie': 'TOKEN=' + token,
+                },
+        )
+        respuesta = _server.service.ingresarAceptacionReclamoDoc(
+            self.company_id.vat[2:-1],
+            self.company_id.vat[-1],
+            str(self.sii_document_class_id.sii_code),
+            str(self.sii_document_number),
+            self.claim,
+        )
+        self.claim_description = respuesta
+
+    @api.multi
+    def get_dte_claim(self, ):
+        try:
+            signature_d = self.get_digital_signature_pem(
+                self.company_id)
+            seed = self.get_seed(self.company_id)
+            template_string = self.create_template_seed(seed)
+            seed_firmado = self.sign_seed(
+                template_string,
+                signature_d['priv_key'],
+                signature_d['cert'])
+            token = self.get_token(seed_firmado,self.company_id)
+        except:
+            raise UserError(connection_status)
+        url = claim_url[self.company_id.dte_service_provider] + '?wsdl'
+        _server = Client(
+            url,
+            headers= {
+                'Cookie': 'TOKEN=' + token,
+                },
+        )
+        respuesta = _server.service.listarEventosHistDoc(
+            self.company_id.vat[2:-1],
+            self.company_id.vat[-1],
+            str(self.sii_document_class_id.sii_code),
+            str(self.sii_document_number),
+        )
+        self.claim_description = respuesta
+        #resp = xmltodict.parse(respuesta)
+        #if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == '2':
+        #    status = {'warning':{'title':_("Error code: 2"), 'message': _(resp['SII:RESPUESTA']['SII:RESP_HDR']['GLOSA'])}}
+        #    return status
+        #if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == "EPR":
+        #    self.sii_result = "Proceso"
+        #    if resp['SII:RESPUESTA']['SII:RESP_BODY']['RECHAZADOS'] == "1":
+        #        self.sii_result = "Rechazado"
+        #    if resp['SII:RESPUESTA']['SII:RESP_BODY']['REPARO'] == "1":
+        #        self.sii_result = "Reparo"
+        #elif resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == "RCT":
+        #    self.sii_result = "Rechazado"
 
     @api.multi
     def wizard_upload(self):
