@@ -151,6 +151,13 @@ class ProcessMailsDocument(models.Model):
                     }
                     val = self.env['sii.dte.upload_xml.wizard'].create(vals)
                     created = val.confirm()
+            r.state = 'acepted'
+        xml_id = 'account.action_invoice_tree2'
+        result = self.env.ref('%s' % (xml_id)).read()[0]
+        invoice_domain = eval(result['domain'])
+        invoice_domain.append(('id', 'in', created))
+        result['domain'] = invoice_domain
+        return result
 
     @api.multi
     def reject_document(self):
@@ -169,6 +176,7 @@ class ProcessMailsDocument(models.Model):
                     }
                     val = self.env['sii.dte.upload_xml.wizard'].create(vals)
                     created = val.confirm()
+            r.state = 'rejected'
 
 
 class ProcessMailsDocumentLines(models.Model):

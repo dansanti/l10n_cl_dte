@@ -80,8 +80,8 @@
     <field name="arch" type="xml">
       <form string="Mail DTE Process">
         <header>
-            <button name="acept_document" string="Aceptar" type="object"/>
-            <button name="reject_document" string="Rechazar" type="object"/>
+            <button name="acept_document" string="Aceptar" type="object" attrs="{'invisible':[('state', '!=', 'draft')]}"/>
+            <button name="reject_document" string="Rechazar" type="object" attrs="{'invisible':[('state', '!=', 'draft')]}"/>
         </header>
         <sheet>
           <group>

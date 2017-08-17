@@ -69,16 +69,13 @@ class UploadXMLWizard(models.TransientModel):
         created = []
         if self.pre_process:
             created = self.do_create_pre()
-            return
-            xml_id = 'account.action_invoice_tree2'
+            xml_id = 'l10n_cl_dte.dte_document_view_tree'
         elif self.option == 'reject':
             self.do_reject()
             return
         elif self.action == 'create':
-            self.do_create_inv()
-            if self.inv:
-                created.append(self.inv.id)
-                xml_id = 'account.action_invoice_tree2'
+            created = self.do_create_inv()
+            xml_id = 'account.action_invoice_tree2'
         if self.action == 'create_po':
             self.do_create_po()
             xml_id = 'purchase.purchase_order_tree'
@@ -419,6 +416,10 @@ class UploadXMLWizard(models.TransientModel):
 
         return resp
 
+    def send_message(self, message="RCT"):
+        id = self.document_id.folio or self.inv.ref
+        sii_document_class = self.document_id.sii_document_class_id or self.inv.sii_document_class_id.sii_code
+
     def do_reject(self):
         id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
         IdRespuesta = self.env['ir.sequence'].browse(id_seq).next_by_id()
@@ -758,6 +759,7 @@ class UploadXMLWizard(models.TransientModel):
         }]
 
     def _prepare_invoice(self, dte, company_id, journal_document_class_id):
+        data = {}
         partner_id = self.env['res.partner'].search(
             [
                 ('active','=', True),
@@ -770,10 +772,15 @@ class UploadXMLWizard(models.TransientModel):
         elif not partner_id.supplier:
             partner_id.supplier = True
         if partner_id:
+            data.update(
+            {
+                'account_id': partner_id.property_account_payable_id.id,
+                'partner_id': partner_id.id,
+            })
             partner_id = partner_id.id
         name = self.filename.decode('ISO-8859-1').encode('UTF-8')
         xml =base64.b64decode(self.xml_file).decode('ISO-8859-1')
-        data = {
+        data.update( {
             'origin' : 'XML Envío: ' + name,
             'date_invoice' :dte['Encabezado']['IdDoc']['FchEmis'],
             'partner_id' : partner_id,
@@ -782,13 +789,11 @@ class UploadXMLWizard(models.TransientModel):
             'turn_issuer': company_id.company_activities_ids[0].id,
             'sii_xml_request': xml ,
             'sii_send_file_name': name,
-        }
+        })
 
         if partner_id and not self.pre_process:
             data.update({
                 'reference': dte['Encabezado']['IdDoc']['Folio'],
-                'account_id': partner_id.property_account_payable_id.id,
-                'partner_id': partner_id.id,
                 'journal_document_class_id':journal_document_class_id.id,
             })
         else:
@@ -914,6 +919,7 @@ class UploadXMLWizard(models.TransientModel):
         return created
 
     def do_create_inv(self):
+        created = []
         dtes = self._get_dtes()
         for dte in dtes:
             try:
@@ -925,12 +931,14 @@ class UploadXMLWizard(models.TransientModel):
                 self.inv = self._create_inv(dte['Documento'], company_id)
                 if self.document_id :
                     self.document_id.invoice_id = self.inv.id
+                if self.inv:
+                    created.append(self.inv.id)
+                if not self.inv:
+                    raise UserError('El archivo XML no contiene documentos para alguna empresa registrada en Odoo, o ya ha sido procesado anteriormente ')
             except Exception as e:
                 _logger.warning('Error en 1 factura con error:  %s' % str(e))
                 #    if self.inv:
                 #        self.inv.sii_xml_response = resp['warning']['message']
-        if not self.inv:
-            raise UserError('El archivo XML no contiene documentos para alguna empresa registrada en Odoo, o ya ha sido procesado anteriormente ')
 
 
     def _create_po(self, dte):
