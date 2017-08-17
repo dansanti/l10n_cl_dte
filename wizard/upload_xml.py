@@ -69,7 +69,7 @@ class UploadXMLWizard(models.TransientModel):
         created = []
         if self.pre_process:
             created = self.do_create_pre()
-            xml_id = 'l10n_cl_dte.dte_document_view_tree'
+            xml_id = 'l10n_cl_dte.action_dte_process'
         elif self.option == 'reject':
             self.do_reject()
             return
@@ -327,11 +327,12 @@ class UploadXMLWizard(models.TransientModel):
                 'recepcion_envio_' + (self.filename or self.dte_id.name) + '_' + str(IdRespuesta),
                 self.dte_id.id,
                 'mail.message.dte')
-            if self.dte_id.partner_id and  att:
+            partners = [self.dte_id.partner_id.id] if 'partner_id' in self.dte_id else []
+            if  att:
                 self.dte_id.message_post(
                     body='XML de Respuesta Envío, Estado: %s , Glosa: %s ' % (recep['EstadoRecepEnv'], recep['RecepEnvGlosa'] ),
                     subject='XML de Respuesta Envío' ,
-                    partner_ids=[self.dte_id.partner_id.id],
+                    partner_ids=partners,
                     attachment_ids=[ att.id ],
                     message_type='comment',
                     subtype='mt_comment')
@@ -668,6 +669,7 @@ class UploadXMLWizard(models.TransientModel):
                     '|',
                     ('new_product', '=',  line['NmbItem']),
                     ('product_description', '=', line['NmbItem']),
+                    ('document_id', '=', document_id.id)
                 ]
             )
             if line_id:
@@ -837,7 +839,7 @@ class UploadXMLWizard(models.TransientModel):
             lines.append(self._prepare_line(dte['Detalle'],document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type']))
         elif len(dte['Detalle']) > 0:
             for line in dte['Detalle']:
-                lines.append(self._prepare_line(line, journal=journal_document_class_id.journal_id, type=data['type']))
+                lines.append(self._prepare_line(line, document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type']))
         if not self.pre_process and 'Referencia' in dte:
             refs = [(5,)]
             if 'NroLinRef' in dte['Referencia']:
@@ -877,9 +879,19 @@ class UploadXMLWizard(models.TransientModel):
             #    raise UserError('¡El documento está completamente descuadrado!')
         return inv
 
+    def _dte_exist(self, doc):
+        return self.env['mail.message.dte.document'].search(
+            [
+                ('number','=',dte['Encabezado']['IdDoc']['Folio']),
+                ('sii_document_class_id.sii_code','=',dte['Encabezado']['IdDoc']['TipoDTE']),
+                ('partner_id.vat','=', self.format_rut(dte['Encabezado']['Emisor']['RUTEmisor'])),
+            ]
+        )
+
     def _create_pre(self, documento, company_id):
         inv = self._inv_exist(documento)
-        if not inv:
+        dte = self._dte_exist(documento)
+        if not inv and not dte:
             data = self._get_data(documento, company_id)
             data.update({
                 'dte_id': self.dte_id.id,

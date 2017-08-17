@@ -80,6 +80,7 @@
     <field name="arch" type="xml">
       <form string="Mail DTE Process">
         <header>
+            <field name='state' widget="statusbar"/>
             <button name="acept_document" string="Aceptar" type="object" attrs="{'invisible':[('state', '!=', 'draft')]}"/>
             <button name="reject_document" string="Rechazar" type="object" attrs="{'invisible':[('state', '!=', 'draft')]}"/>
         </header>
@@ -152,6 +153,7 @@
   <record id="action_dte_process" model="ir.actions.act_window">
       <field name="type">ir.actions.act_window</field>
       <field name="name">Recepcionar XML de Envío</field>
+      <field name="domain">[]</field>
       <field name="res_model">mail.message.dte.document</field>
       <field name="view_type">form</field>
       <field name="target">current</field>

@@ -137,6 +137,7 @@ class ProcessMailsDocument(models.Model):
 
     @api.multi
     def acept_document(self):
+        created = []
         for r in self:
             for att in r.dte_id.sudo().mail_id.attachment_ids:
                 if not att.name:
