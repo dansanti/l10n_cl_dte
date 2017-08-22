@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 try:
     from signxml import xmldsig, methods
 except ImportError:
-    _logger.info('Cannot import signxml')
+    _logger.warning('Cannot import signxml')
 
 BC = '''-----BEGIN CERTIFICATE-----\n'''
 EC = '''\n-----END CERTIFICATE-----\n'''
@@ -441,7 +441,7 @@ class UploadXMLWizard(models.TransientModel):
             )
             if line_id:
                 if line_id.product_id:
-                    return line.product_id.id
+                    return line_id.product_id.id
         query = False
         product_id = False
         if 'CdgItem' in line:
@@ -508,6 +508,7 @@ class UploadXMLWizard(models.TransientModel):
                 'product_description': line['DescItem'] if 'DescItem' in line else '',
             })
         else:
+            product_id = self.env['product.product'].browse(product_id)
             data.update({
                 'invoice_line_tax_ids': [(6, 0, product_id.supplier_taxes_id.ids)],
                 })
@@ -606,7 +607,11 @@ class UploadXMLWizard(models.TransientModel):
         if 'NroLinDet' in dte['Detalle']:
             lines.append(self._prepare_line(dte['Detalle'],document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type']))
         elif len(dte['Detalle']) > 0:
-            for line in dte['Detalle']:
+            try:
+                Detalles = dte['Detalle']['item']
+            except:
+                Detalles = dte['Detalle']
+            for line in Detalles:
                 lines.append(self._prepare_line(line, document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type']))
         if not self.pre_process and 'Referencia' in dte:
             refs = [(5,)]
@@ -733,7 +738,6 @@ class UploadXMLWizard(models.TransientModel):
                 raise UserError('El archivo XML no contiene documentos para alguna empresa registrada en Odoo, o ya ha sido procesado anteriormente ')
         except Exception as e:
             _logger.warning('Error en 1 factura con error:  %s' % str(e))
-
         if created and self.option not in [False, 'upload']:
             wiz_acept = self.env['sii.dte.validar.wizard'].create(
                 {
