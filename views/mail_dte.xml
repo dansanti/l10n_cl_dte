@@ -8,15 +8,16 @@
         <field name="name"/>
         <field name="mail_id"/>
         <field name="document_ids"  />
+        <field name="company_id" />
       </tree>
     </field>
   </record>
 
   <record id="dte_document_view_tree" model="ir.ui.view">
-    <field name="name">dte.tree</field>
+    <field name="name">dte.document.tree</field>
     <field name="model">mail.message.dte.document</field>
     <field name="arch" type="xml">
-      <tree string="Dtes">
+      <tree string="Documentos">
         <field name="date" />
         <field name="sii_document_class_id" />
         <field name="number" />
@@ -27,8 +28,9 @@
         <field name="invoice_line_ids" />
         <field name="company_id" />
         <field name="dte_id" />
-        <button name="acept_document" string="Aceptar" type="object"/>
-        <button name="reject_document" string="Rechazar" type="object"/>
+        <field name="state" />
+        <button name="acept_document" string="Aceptar" type="object" attrs="{'invisible':[('state', '!=', 'draft')]}"/>
+        <button name="reject_document" string="Rechazar" type="object" attrs="{'invisible':[('state', '!=', 'draft')]}"/>
       </tree>
     </field>
   </record>
@@ -46,6 +48,7 @@
           <group>
             <field name="name"/>
             <field name="mail_id"/>
+            <field name="company_id" />
           </group>
           <notebook>
             <page string="Documentos">
@@ -75,7 +78,7 @@
   </record>
 
   <record id="dte_document_view_form" model="ir.ui.view">
-    <field name="name">dte.form</field>
+    <field name="name">dte.document.form</field>
     <field name="model">mail.message.dte.document</field>
     <field name="arch" type="xml">
       <form string="Mail DTE Process">
@@ -87,6 +90,7 @@
         <sheet>
           <group>
             <field name="dte_id" />
+            <field name="date" />
             <field name="new_partner" />
             <field name="partner_id" />
             <field name="number" />
@@ -109,6 +113,9 @@
                   <field name="currency_id" invisible="True"/>
                 </tree>
               </field>
+            </page>
+            <page string="XML DTE">
+              <field name="xml" />
             </page>
           </notebook>
         </sheet>
@@ -182,4 +189,14 @@
       action="act_xml_recept"
       id="menu_action_xml_recept"
       parent="l10n_cl_partner_activities.menu_sii_config"/>
+
+  <act_window id="action_masive_validate"
+          multi="True"
+          key2="client_action_multi"
+          name="Validar Documentos"
+          res_model="sii.dte.validar.wizard"
+          src_model="account.invoice"
+          view_mode="form"
+          target="new"
+          view_type="form" />
 </odoo>

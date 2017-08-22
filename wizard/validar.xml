@@ -8,6 +8,8 @@
                 <form string="SII DTE Upload XML Wizard">
                     <group>
                         <field name="action" widget="radio"/>
+                        <field name="option" widget="radio"/>
+                        <field name="invoice_ids" widget="many2many_tag" />
                     </group>
                     <footer>
                         <button string="Confirm" name="confirm" type="object" class="oe_highlight" />

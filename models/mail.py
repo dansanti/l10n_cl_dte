@@ -4,6 +4,17 @@ from openerp import fields, models, api, _
 import logging
 _logger = logging.getLogger(__name__)
 
+status_dte = [
+    ('no_revisado','No Revisado'),
+    ('0','Conforme'),
+    ('1','Error de Schema'),
+    ('2','Error de Firma'),
+    ('3','RUT Receptor No Corresponde'),
+    ('90','Archivo Repetido'),
+    ('91','Archivo Ilegible'),
+    ('99','Envio Rechazado - Otros')
+]
+
 class ProcessMails(models.Model):
     _inherit = "mail.message"
 
@@ -25,7 +36,7 @@ class ProcessMails(models.Model):
             if dte:
                 val = self.env['mail.message.dte'].create(dte)
                 val.pre_process()
-                val.mail_id = mail
+                val.mail_id = mail.id
         return mail
 
 class ProccessMail(models.Model):
@@ -48,6 +59,11 @@ class ProccessMail(models.Model):
         string="Documents",
         readonly=True,
     )
+    company_id = fields.Many2one(
+        'res.company',
+        string="Compañía",
+        readonly=True,
+    )
 
     def pre_process(self):
         self.process_message(pre=True)
@@ -55,7 +71,7 @@ class ProccessMail(models.Model):
     @api.multi
     def process_message(self, pre=False):
         for r in self:
-            for att in r.mail_id.attachment_ids:
+            for att in r.sudo().mail_id.attachment_ids:
                 if not att.name:
                     continue
                 name = att.name.upper()
@@ -67,7 +83,13 @@ class ProccessMail(models.Model):
                         'dte_id': r.id,
                     }
                     val = self.env['sii.dte.upload_xml.wizard'].create(vals)
-                    created = val.confirm()
+                    created = val.confirm(ret=True)
+        xml_id = 'l10n_cl_dte.action_dte_process'
+        result = self.env.ref('%s' % (xml_id)).read()[0]
+        domain = eval(result['domain'])
+        domain.append(('id', 'in', created))
+        result['domain'] = domain
+        return result
 
 class ProcessMailsDocument(models.Model):
     _name = 'mail.message.dte.document'
@@ -134,50 +156,46 @@ class ProcessMailsDocument(models.Model):
         string="Factura",
         readonly=True,
     )
+    xml = fields.Text(
+        string="XML Documento",
+        readonly=True,
+    )
+    _order = 'date DESC'
 
     @api.multi
     def acept_document(self):
         created = []
         for r in self:
-            for att in r.dte_id.sudo().mail_id.attachment_ids:
-                if not att.name:
-                    continue
-                name = att.name.upper()
-                if att.mimetype in ['text/plain'] and name.find('.XML') > -1:
-                    vals={
-                        'xml_file': att.datas,
-                        'filename': att.name,
-                        'pre_process': False,
-                        'document_id': r.id,
-                    }
-                    val = self.env['sii.dte.upload_xml.wizard'].create(vals)
-                    created = val.confirm()
+            vals = {
+                'xml_file': r.xml.encode('ISO-8859-1'),
+                'filename': r.dte_id.name,
+                'pre_process': False,
+                'document_id': r.id,
+                'option': 'acept'
+            }
+            val = self.env['sii.dte.upload_xml.wizard'].create(vals)
+            created.append(val.confirm(ret=True))
             r.state = 'acepted'
         xml_id = 'account.action_invoice_tree2'
         result = self.env.ref('%s' % (xml_id)).read()[0]
-        invoice_domain = eval(result['domain'])
-        invoice_domain.append(('id', 'in', created))
-        result['domain'] = invoice_domain
+        domain = eval(result['domain'])
+        domain.append(('id', 'in', created))
+        result['domain'] = domain
         return result
 
     @api.multi
     def reject_document(self):
         for r in self:
-            for att in r.dte_id.sudo().mail_id.attachment_ids:
-                if not att.name:
-                    continue
-                name = att.name.upper()
-                if att.mimetype in ['text/plain'] and name.find('.XML') > -1:
-                    vals={
-                        'xml_file': att.datas,
-                        'filename': att.name,
-                        'pre_process': False,
-                        'document_id': r.id,
-                        'option': 'reject',
-                    }
-                    val = self.env['sii.dte.upload_xml.wizard'].create(vals)
-                    created = val.confirm()
             r.state = 'rejected'
+
+        wiz_acept = self.env['sii.dte.validar.wizard'].create(
+            {
+                'invoice_ids': [(6, 0, rejected)],
+                'action': 'validate',
+                'option': self.option,
+            }
+        )
+        wiz_acept.confirm()
 
 
 class ProcessMailsDocumentLines(models.Model):

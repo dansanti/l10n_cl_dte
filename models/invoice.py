@@ -857,22 +857,27 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     canceled = fields.Boolean(string="Canceled?")
     estado_recep_dte = fields.Selection(
         [
-            ('no_revisado','No Revisado'),
-            ('0','Conforme'),
-            ('1','Error de Schema'),
-            ('2','Error de Firma'),
-            ('3','RUT Receptor No Corresponde'),
-            ('90','Archivo Repetido'),
-            ('91','Archivo Ilegible'),
-            ('99','Envio Rechazado - Otros')
-        ],string="Estado de Recepcion del Envio")
-    estado_recep_glosa = fields.Char(string="Información Adicional del Estado de Recepción")
-    sii_send_file_name = fields.Char(string="Send File Name")
-    responsable_envio = fields.Many2one('res.users')
+            ('recibido', 'Recibido en DTE'),
+            ('mercaderias','Recibido mercaderias'),
+            ('validate','Validada Comercial')
+        ],
+        string="Estado de Recepcion del Envio",
+        default='recibido',
+    )
+    estado_recep_glosa = fields.Char(
+        string="Información Adicional del Estado de Recepción",
+    )
+    sii_send_file_name = fields.Char(
+        string="Send File Name",
+    )
+    responsable_envio = fields.Many2one(
+        'res.users',
+    )
     ticket = fields.Boolean(string="Formato Ticket",
             default=False,
             readonly=True,
-            states={'draft': [('readonly', False)]})
+            states={'draft': [('readonly', False)]},
+    )
     claim = fields.Selection(
         [
             ('ACD', 'Acepta Contenido del Documento'),
@@ -885,6 +890,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     )
     claim_description = fields.Char(
         string="Detalle Reclamo",
+        readonly=True,
     )
 
     @api.multi
@@ -1344,7 +1350,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             SubTotDTE += '<SubTotDTE>\n<TpoDTE>' + str(id_class_doc) + '</TpoDTE>\n<NroDTE>'+str(NroDte)+'</NroDTE>\n</SubTotDTE>\n'
         file_name += ".xml"
         documentos =""
-        for key in sorted(dtes.iterkeys()):
+        for key in sorted(dtes.iterkeys(), key=lambda r: int(r[0])):
             documentos += '\n'+dtes[key]
         # firma del sobre
         dtes = self.create_template_envio( RUTEmisor, RUTRecep,
@@ -1458,20 +1464,30 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 return status
         return self._get_dte_status(signature_d, token)
 
-    def _set_dte_claim(self, ):
+    def set_dte_claim(self, rut_emisor=False, company_id=False, sii_document_number=False, sii_document_class_id=False, claim=False):
+        rut_emisor = rut_emisor or self.format_vat(self.company_id.partner_id.vat)
+        company_id = company_id or self.company_id
+        sii_document_number =  sii_document_number or self.sii_document_number or self.reference
+        sii_document_class_id = sii_document_class_id or self.sii_document_class_id
+        claim = claim or self.claim
         try:
             signature_d = self.get_digital_signature_pem(
-                self.company_id)
-            seed = self.get_seed(self.company_id)
-            template_string = self.create_template_seed(seed)
+                company_id,
+            )
+            seed = self.get_seed( company_id )
+            template_string = self.create_template_seed( seed )
             seed_firmado = self.sign_seed(
                 template_string,
                 signature_d['priv_key'],
-                signature_d['cert'])
-            token = self.get_token(seed_firmado,self.company_id)
+                signature_d['cert'],
+            )
+            token = self.get_token(
+                seed_firmado,
+                company_id,
+            )
         except:
             raise UserError(connection_status)
-        url = claim_url[self.company_id.dte_service_provider] + '?wsdl'
+        url = claim_url[company_id.dte_service_provider] + '?wsdl'
         _server = Client(
             url,
             headers= {
@@ -1479,13 +1495,14 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 },
         )
         respuesta = _server.service.ingresarAceptacionReclamoDoc(
-            self.company_id.vat[2:-1],
-            self.company_id.vat[-1],
-            str(self.sii_document_class_id.sii_code),
-            str(self.sii_document_number),
-            self.claim,
+            rut_emisor[:-2],
+            rut_emisor[-1],
+            str(sii_document_class_id.sii_code),
+            str(sii_document_number),
+            claim,
         )
-        self.claim_description = respuesta
+        if self.id:
+            self.claim_description = respuesta
 
     @api.multi
     def get_dte_claim(self, ):
