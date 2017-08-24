@@ -555,7 +555,10 @@ class UploadXMLWizard(models.TransientModel):
                 'partner_id': partner_id.id,
             })
             partner_id = partner_id.id
-        name = self.filename.decode('ISO-8859-1').encode('UTF-8')
+        try:
+            name = self.filename.decode('ISO-8859-1').encode('UTF-8')
+        except:
+            name = self.filename.encode('UTF-8')
         xml =base64.b64decode(self.xml_file).decode('ISO-8859-1')
         data.update( {
             'origin' : 'XML Envío: ' + name,
@@ -709,7 +712,7 @@ class UploadXMLWizard(models.TransientModel):
                                 ),
                         'invoice_id' : inv.id ,
                         }
-                  )
+                    )
                     created.append(pre.id)
             except Exception as e:
                 _logger.warning('Error en 1 factura con error:  %s' % str(e))
