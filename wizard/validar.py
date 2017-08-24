@@ -102,7 +102,7 @@ class ValidarDTEWizard(models.TransientModel):
         res['RUTEmisor'] = RUTEmisor
         res['RUTRecep'] = RUTRecep
         res['MntTotal'] = MntTotal
-        res['CodEnvio'] = str(IdRespuesta) + str(Folio)
+        res['CodEnvio'] = str(IdRespuesta)
         res['EstadoDTE'] = 0
         res['EstadoDTEGlosa'] = 'DTE Aceptado OK'
         if self.option == "reject":
