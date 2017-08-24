@@ -86,9 +86,10 @@ class ProccessMail(models.Model):
                     created = val.confirm(ret=True)
         xml_id = 'l10n_cl_dte.action_dte_process'
         result = self.env.ref('%s' % (xml_id)).read()[0]
-        domain = eval(result['domain'])
-        domain.append(('id', 'in', created))
-        result['domain'] = domain
+        if created:
+            domain = eval(result['domain'])
+            domain.append(('id', 'in', created))
+            result['domain'] = domain
         return result
 
 class ProcessMailsDocument(models.Model):
@@ -178,9 +179,10 @@ class ProcessMailsDocument(models.Model):
             r.state = 'acepted'
         xml_id = 'account.action_invoice_tree2'
         result = self.env.ref('%s' % (xml_id)).read()[0]
-        domain = eval(result['domain'])
-        domain.append(('id', 'in', created))
-        result['domain'] = domain
+        if  created:
+            domain = eval(result['domain'])
+            domain.append(('id', 'in', created))
+            result['domain'] = domain
         return result
 
     @api.multi

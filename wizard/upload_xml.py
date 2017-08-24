@@ -91,9 +91,10 @@ class UploadXMLWizard(models.TransientModel):
         if ret:
             return created
         result = self.env.ref('%s' % (xml_id)).read()[0]
-        domain = eval(result['domain'])
-        domain.append(('id', 'in', created))
-        result['domain'] = domain
+        if created:
+            domain = eval(result['domain'])
+            domain.append(('id', 'in', created))
+            result['domain'] = domain
         return result
 
     def format_rut(self, RUTEmisor=None):
