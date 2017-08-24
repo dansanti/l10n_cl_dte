@@ -622,7 +622,11 @@ class UploadXMLWizard(models.TransientModel):
             if 'NroLinRef' in dte['Referencia']:
                 refs.append(self._prepare_ref(dte['Referencia']))
             else:
-                for ref in dte['Referencia']:
+                try:
+                    Referencias = dte['Referencia']['item']
+                except:
+                    Referencias = dte['Referencia']
+                for ref in Referencias:
                     refs.append(self._prepare_ref(ref))
             data['referencias'] = refs
         data['invoice_line_ids'] = lines
@@ -661,7 +665,9 @@ class UploadXMLWizard(models.TransientModel):
             [
                 ('number','=',dte['Encabezado']['IdDoc']['Folio']),
                 ('sii_document_class_id.sii_code','=',dte['Encabezado']['IdDoc']['TipoDTE']),
-                ('partner_id.vat','=', self.format_rut(dte['Encabezado']['Emisor']['RUTEmisor'])),
+                '|',
+                ('partner_id.vat', '=', self.format_rut(dte['Encabezado']['Emisor']['RUTEmisor'])),
+                ('new_partner', '=', dte['Encabezado']['Emisor']['RUTEmisor'] + ' ' + dte['Encabezado']['Emisor']['RznSoc']),
             ]
         )
 
