@@ -435,6 +435,7 @@ class UploadXMLWizard(models.TransientModel):
         return product_id.id
 
     def _buscar_producto(self, document_id, line):
+        default_code = False
         if document_id:
             code = ' ' + str(line['CdgItem']) if 'CdgItem' in line else ''
             line_id = self.env['mail.message.dte.document.line'].search(
@@ -456,6 +457,7 @@ class UploadXMLWizard(models.TransientModel):
                     query = [('barcode','=',line['CdgItem']['VlrCodigo'])]
                 else:
                     query = [('default_code','=',line['CdgItem']['VlrCodigo'])]
+                default_code = line['CdgItem']['VlrCodigo']
             else:
                 try:
                     Codes = data['CdgItem']['item']
@@ -466,23 +468,38 @@ class UploadXMLWizard(models.TransientModel):
                         query = [('barcode','=',c['VlrCodigo'])]
                     elif c['TpoCodigo'] == 'INT1':
                         query = [('default_code','=',c['VlrCodigo'])]
+                    default_code = c['VlrCodigo']
         if not query:
             query = [('name','=',line['NmbItem'])]
         product_id = self.env['product.product'].search(query)
+        query2 = [('partner_id', '=', document_id.partner_id.id)]
+        if default_code:
+            query2.append(('product_code', '=', default_code))
+        else:
+            query2.append(('name', '=', line['NmbItem']))
+        product_supplier = self.env['product.supplierinfo'].search(query2)
+        product_id = product_supplier.product_id or self.env['product.product'].search(
+            [
+                ('product_tmpl_id', '=', product_supplier.product_tmpl_id.id),
+            ],
+                limit=1)
         if not product_id:
-            query2 = [('name','=',line['NmbItem'])]
-            for q in query:
-                if q[0] == 'default_code':
-                    query2 = [('product_code', '=', q[2])]
-            product_id = self.env['product.supplierinfo'].search(query2).product_id
-            if not product_id and not self.pre_process:
+            if not product_supplier and not self.pre_process:
                 product_id = self._create_prod(line)
             else:
                 code = ' ' + str(line['CdgItem']) if 'CdgItem' in line else ''
                 return line['NmbItem'] + '' + code
-        else:
-            product_id = product_id.id
-        return product_id
+        if not product_supplier:
+            supplier_info = {
+                'name' : line['NmbItem'],
+                'product_code': default_code,
+                'product_tmpl_id': product_id.product_tmpl_id.id,
+                'partner_id': document_id.partner_id.id,
+                'price': float(line['PrcItem'] if 'PrcItem' in line else line['MontoItem']),
+            }
+            self.env['product.supplierinfo'].search(supplier_info)
+
+        return product_id.id
 
     def _prepare_line(self, line, document_id, journal, type):
         data = {}
