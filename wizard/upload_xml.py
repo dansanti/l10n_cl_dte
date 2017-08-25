@@ -423,7 +423,11 @@ class UploadXMLWizard(models.TransientModel):
                 else:
                     product_id.default_code = data['CdgItem']['VlrCodigo']
             else:
-                for c in data['CdgItem']:
+                try:
+                    Codes = data['CdgItem']['item']
+                except:
+                    Codes = data['CdgItem']
+                for c in Codes:
                     if c['TpoCodigo'] == 'ean13':
                         product_id.barcode = c['VlrCodigo']
                     else:
@@ -453,7 +457,11 @@ class UploadXMLWizard(models.TransientModel):
                 else:
                     query = [('default_code','=',line['CdgItem']['VlrCodigo'])]
             else:
-                for c in line['CdgItem']:
+                try:
+                    Codes = data['CdgItem']['item']
+                except:
+                    Codes = data['CdgItem']
+                for c in Codes:
                     if c['TpoCodigo'] == 'ean13':
                         query = [('barcode','=',c['VlrCodigo'])]
                     elif c['TpoCodigo'] == 'INT1':
