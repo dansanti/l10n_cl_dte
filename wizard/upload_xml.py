@@ -432,11 +432,12 @@ class UploadXMLWizard(models.TransientModel):
 
     def _buscar_producto(self, document_id, line):
         if document_id:
+            code = ' ' + str(line['CdgItem']) if 'CdgItem' in line else ''
             line_id = self.env['mail.message.dte.document.line'].search(
                 [
                     '|',
-                    ('new_product', '=',  line['NmbItem']),
-                    ('product_description', '=', line['NmbItem']),
+                    ('new_product', '=',  line['NmbItem'] + '' + code),
+                    ('product_description', '=', line['DescItem'] if 'DescItem' in line else line['NmbItem']),
                     ('document_id', '=', document_id.id)
                 ]
             )
@@ -470,7 +471,7 @@ class UploadXMLWizard(models.TransientModel):
                 product_id = self._create_prod(line)
             else:
                 code = ' ' + str(line['CdgItem']) if 'CdgItem' in line else ''
-                return line['NmbItem'] + ''+ code
+                return line['NmbItem'] + '' + code
         else:
             product_id = product_id.id
         return product_id
