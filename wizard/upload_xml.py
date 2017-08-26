@@ -449,6 +449,8 @@ class UploadXMLWizard(models.TransientModel):
             if line_id:
                 if line_id.product_id:
                     return line_id.product_id.id
+            else:
+                return False
         query = False
         product_id = False
         if 'CdgItem' in line:
@@ -472,11 +474,11 @@ class UploadXMLWizard(models.TransientModel):
         if not query:
             query = [('name','=',line['NmbItem'])]
         product_id = self.env['product.product'].search(query)
-        query2 = [('partner_id', '=', document_id.partner_id.id)]
+        query2 = [('name', '=', document_id.partner_id.id)]
         if default_code:
             query2.append(('product_code', '=', default_code))
         else:
-            query2.append(('name', '=', line['NmbItem']))
+            query2.append(('product_name', '=', line['NmbItem']))
         product_supplier = self.env['product.supplierinfo'].search(query2)
         product_id = product_supplier.product_id or self.env['product.product'].search(
             [
@@ -491,10 +493,10 @@ class UploadXMLWizard(models.TransientModel):
                 return line['NmbItem'] + '' + code
         if not product_supplier:
             supplier_info = {
-                'name' : line['NmbItem'],
+                'name': document_id.partner_id.id,
+                'product_name' : line['NmbItem'],
                 'product_code': default_code,
                 'product_tmpl_id': product_id.product_tmpl_id.id,
-                'partner_id': document_id.partner_id.id,
                 'price': float(line['PrcItem'] if 'PrcItem' in line else line['MontoItem']),
             }
             self.env['product.supplierinfo'].search(supplier_info)
@@ -510,6 +512,8 @@ class UploadXMLWizard(models.TransientModel):
                     'product_id': product_id,
                 }
             )
+        elif not product_id:
+            return False
 
         account_id = journal.default_debit_account_id.id
         if type in ('out_invoice', 'in_refund'):
@@ -635,14 +639,18 @@ class UploadXMLWizard(models.TransientModel):
         lines = [(5,)]
         document_id = self._dte_exist(dte)
         if 'NroLinDet' in dte['Detalle']:
-            lines.append(self._prepare_line(dte['Detalle'],document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type']))
+            new_line = self._prepare_line(dte['Detalle'],document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type'])
+            if new_line:
+                lines.append(new_line)
         elif len(dte['Detalle']) > 0:
             try:
                 Detalles = dte['Detalle']['item']
             except:
                 Detalles = dte['Detalle']
             for line in Detalles:
-                lines.append(self._prepare_line(line, document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type']))
+                new_line = self._prepare_line(line, document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type'])
+                if new_line:
+                    lines.append(new_line)
         if not self.pre_process and 'Referencia' in dte:
             refs = [(5,)]
             if 'NroLinRef' in dte['Referencia']:
