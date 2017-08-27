@@ -46,10 +46,9 @@ class ValidarDTEWizard(models.TransientModel):
 
     @api.multi
     def confirm(self):
-        if self.action == 'receipt':
-            self.do_receipt()
-        if self.action == 'validate':
-            self.do_validar_comercial()
+        #if self.action == 'validate':
+        self.do_receipt()
+        self.do_validar_comercial()
 
     def send_message(self, message="RCT"):
         id = self.document_id.folio or self.inv.ref
