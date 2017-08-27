@@ -321,7 +321,7 @@ class ValidarDTEWizard(models.TransientModel):
         caratula['NmbContacto'] = self.env.user.partner_id.name
         caratula['FonoContacto'] = self.env.user.partner_id.phone
         caratula['MailContacto'] = self.env.user.partner_id.email
-        caratula['TmstFirmaEnv'] = self.inv.time_stamp()
+        caratula['TmstFirmaEnv'] = self.env['account.invoice'].time_stamp()
         return caratula
 
     @api.multi
@@ -368,7 +368,7 @@ class ValidarDTEWizard(models.TransientModel):
                 certp,
                 'Recibo',
                 'recep')
-            RutRecibe = inv.format_vat(inv.company_id.vat)
+            RutRecibe = inv.format_vat(inv.partner_id.vat)
             dict_caratula = self._caratula_recep(
                 inv.format_vat(inv.company_id.vat),
                 RutRecibe,
@@ -382,7 +382,7 @@ class ValidarDTEWizard(models.TransientModel):
                 caratula,
                 receipt,
             )
-            envio_dte = self.inv.sign_full_xml(
+            envio_dte = self.sign_full_xml(
                 envio_dte,
                 signature_d['priv_key'],
                 certp,
@@ -394,7 +394,7 @@ class ValidarDTEWizard(models.TransientModel):
                 'recepcion_mercaderias_' + str(inv.sii_send_file_name),
                 )
             inv.message_post(
-                body='XML de Recepción de Documeto\n %s' % (message),
+                body='XML de Recepción de Mercaderías\n %s' % (message),
                 subject='XML de Recepción de Documento',
                 partner_ids=[ inv.partner_id.id ],
                 attachment_ids=[ att.id ],
