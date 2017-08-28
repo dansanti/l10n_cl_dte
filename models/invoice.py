@@ -1439,7 +1439,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 self.sii_result = "Rechazado"
             if resp['SII:RESPUESTA']['SII:RESP_BODY']['REPARO'] == "1":
                 self.sii_result = "Reparo"
-        elif resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == "RCT":
+        elif resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == "FAU":
             self.sii_result = "Rechazado"
 
     @api.multi
