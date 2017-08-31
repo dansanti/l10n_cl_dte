@@ -464,11 +464,11 @@ version="1.0">
         return fulldoc
 
     def get_digital_signature_pem(self, comp_id):
-        obj = user = self[0].responsable_envio
+        obj = user = self[0].responsable_envio if self else False
         if not obj:
             obj = user = self.env.user
         if not obj.cert:
-            obj = self.env['res.company'].browse([comp_id.id])
+            obj = comp_id
             if not obj or not obj.cert:
                 obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
                 if not obj.cert or not user.id in obj.authorized_users_ids.ids:
@@ -1454,8 +1454,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 signature_d['priv_key'],
                 signature_d['cert'])
             token = self.get_token(seed_firmado,self.company_id)
-        except:
-            raise UserError(connection_status)
+        except AssertionError as e:
+            raise UserError(str(e))
         if not self.sii_send_ident:
             raise UserError('No se ha enviado aún el documento, aún está en cola de envío interna en odoo')
         if self.sii_result == 'Enviado':
@@ -1485,8 +1485,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 seed_firmado,
                 company_id,
             )
-        except:
-            raise UserError(connection_status)
+        except AssertionError as e:
+            raise UserError(str(e))
         url = claim_url[company_id.dte_service_provider] + '?wsdl'
         _server = Client(
             url,
@@ -1516,8 +1516,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 signature_d['priv_key'],
                 signature_d['cert'])
             token = self.get_token(seed_firmado,self.company_id)
-        except:
-            raise UserError(connection_status)
+        except AssertionError as e:
+            raise UserError(str(e))
         url = claim_url[self.company_id.dte_service_provider] + '?wsdl'
         _server = Client(
             url,
