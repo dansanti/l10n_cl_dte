@@ -845,7 +845,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         ('Aceptado', 'Aceptado'),
         ('Rechazado', 'Rechazado'),
         ('Reparo', 'Reparo'),
-        ('Proceso', 'Proceso'),
+        ('Proceso', 'Procesado'),
         ('Reenviar', 'Reenviar'),
         ('Anulado', 'Anulado')],
         'Resultado',
