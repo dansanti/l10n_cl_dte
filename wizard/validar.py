@@ -11,6 +11,11 @@ try:
 except:
     _logger.warning('No se ha podido cargar dicttoxml')
 
+try:
+    import xmltodict
+except:
+    _logger.warning('No se ha podido cargar xmltodict')
+
 BC = '''-----BEGIN CERTIFICATE-----\n'''
 EC = '''\n-----END CERTIFICATE-----\n'''
 
@@ -49,9 +54,10 @@ class ValidarDTEWizard(models.TransientModel):
         #if self.action == 'validate':
         self.do_receipt()
         self.do_validar_comercial()
+        #   _logger.info("ee")
 
     def send_message(self, message="RCT"):
-        id = self.document_id.folio or self.inv.ref
+        id = self.document_id.number or self.inv.ref
         sii_document_class = self.document_id.sii_document_class_id or self.inv.sii_document_class_id.sii_code
 
     def _create_attachment(self, xml, name, id=False, model='account.invoice'):
@@ -210,12 +216,10 @@ class ValidarDTEWizard(models.TransientModel):
             inv_obj.set_dte_claim(
                 rut_emisor = xml['Encabezado']['Emisor']['RUTEmisor'],
                 company_id=doc.company_id,
-                sii_document_number=doc.folio,
+                sii_document_number=doc.number,
                 sii_document_class_id=doc.sii_document_class_id,
                 claim='RCD',
             )
-
-
 
     def do_validar_comercial(self):
         id_seq = self.env.ref('l10n_cl_dte.response_sequence').id
@@ -286,7 +290,9 @@ class ValidarDTEWizard(models.TransientModel):
                 subtype='mt_comment',
             )
             inv.claim = 'ACD'
-            inv.set_dte_claim()
+            inv.set_dte_claim(
+                rut_emisor=inv.format_vat(inv.partner_id.vat),
+            )
 
     def _recep(self, inv, RutFirma):
         receipt = collections.OrderedDict()
@@ -382,7 +388,7 @@ class ValidarDTEWizard(models.TransientModel):
                 caratula,
                 receipt,
             )
-            envio_dte = self.sign_full_xml(
+            envio_dte = inv.sign_full_xml(
                 envio_dte,
                 signature_d['priv_key'],
                 certp,
@@ -402,4 +408,6 @@ class ValidarDTEWizard(models.TransientModel):
                 subtype='mt_comment',
             )
             inv.claim = 'ERM'
-            inv.set_dte_claim()
+            inv.set_dte_claim(
+                rut_emisor=inv.format_vat(inv.partner_id.vat),
+            )
