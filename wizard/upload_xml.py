@@ -709,7 +709,6 @@ class UploadXMLWizard(models.TransientModel):
         #        'account_id':  journal_document_class_id.journal_id.default_debit_account_id.id
         #        }]
         #    )
-        _logger.info(lines)
         if not self.pre_process and 'Referencia' in dte:
             refs = [(5,)]
             if 'NroLinRef' in dte['Referencia']:
@@ -723,7 +722,9 @@ class UploadXMLWizard(models.TransientModel):
                     refs.append(self._prepare_ref(ref))
             data['referencias'] = refs
         data['invoice_line_ids'] = lines
-        data['amount_untaxed'] = dte['Encabezado']['Totales']['MntNeto']
+        mnt_neto = int(dte['Encabezado']['Totales']['MntNeto']) if 'MntNeto' in dte['Encabezado']['Totales'] else 0
+        mnt_neto += int(dte['Encabezado']['Totales']['MntExe']) if 'MntExe' in dte['Encabezado']['Totales'] else 0
+        data['amount_untaxed'] = mnt_neto
         data['amount_total'] = dte['Encabezado']['Totales']['MntTotal']
         return data
 
@@ -744,15 +745,13 @@ class UploadXMLWizard(models.TransientModel):
             monto_xml = float(documento['Encabezado']['Totales']['MntTotal'])
             if inv.amount_total == monto_xml:
                 return inv
-            #cuadrar en caso de descuadre por 1$
-            #if (inv.amount_total - 1) == monto_xml or (inv.amount_total + 1) == monto_xml:
             inv.amount_total = monto_xml
             for t in inv.tax_line_ids:
-                if t.tax_id.amount == float(documento['Encabezado']['Totales']['TasaIVA']):
+                if 'TasaIVA' in documento['Encabezado']['Totales'] and t.tax_id.amount == float(documento['Encabezado']['Totales']['TasaIVA']):
                     t.amount = float(documento['Encabezado']['Totales']['IVA'])
                     t.base = float(documento['Encabezado']['Totales']['MntNeto'])
-            #else:
-            #    raise UserError('¡El documento está completamente descuadrado!')
+                else:
+                    t.base = documento['Encabezado']['Totales']['MntExe']
         return inv
 
     def _dte_exist(self, dte):
@@ -822,27 +821,27 @@ class UploadXMLWizard(models.TransientModel):
     def do_create_inv(self):
         created = []
         dte = self._read_xml('parse')
-        #try:
-        company_id = self.document_id.company_id
-        if not company_id:
-            company_id = self.env['res.company'].search(
-                [
-                    ('vat','=', self.format_rut(dte['DTE']['Documento']['Encabezado']['Receptor']['RUTRecep'])),
-                ],
-                limit=1,
+        try:
+            company_id = self.document_id.company_id
+            if not company_id:
+                company_id = self.env['res.company'].search(
+                    [
+                        ('vat','=', self.format_rut(dte['DTE']['Documento']['Encabezado']['Receptor']['RUTRecep'])),
+                    ],
+                    limit=1,
+                )
+            inv = self._create_inv(
+                dte['DTE']['Documento'],
+                company_id,
             )
-        inv = self._create_inv(
-            dte['DTE']['Documento'],
-            company_id,
-        )
-        if self.document_id :
-            self.document_id.invoice_id = inv.id
-        if inv:
-            created.append(inv.id)
-        if not inv:
-            raise UserError('El archivo XML no contiene documentos para alguna empresa registrada en Odoo, o ya ha sido procesado anteriormente ')
-        #except Exception as e:
-        #    _logger.warning('Error en 1 factura con error:  %s' % str(e))
+            if self.document_id :
+                self.document_id.invoice_id = inv.id
+            if inv:
+                created.append(inv.id)
+            if not inv:
+                raise UserError('El archivo XML no contiene documentos para alguna empresa registrada en Odoo, o ya ha sido procesado anteriormente ')
+        except Exception as e:
+            _logger.warning('Error en 1 factura con error:  %s' % str(e))
         if created and self.option not in [False, 'upload']:
             wiz_acept = self.env['sii.dte.validar.wizard'].create(
                 {
