@@ -290,7 +290,9 @@ class ValidarDTEWizard(models.TransientModel):
                 subtype='mt_comment',
             )
             inv.claim = 'ACD'
-            inv.set_dte_claim()
+            inv.set_dte_claim(
+                rut_emisor=inv.format_vat(inv.partner_id.vat),
+            )
 
     def _recep(self, inv, RutFirma):
         receipt = collections.OrderedDict()
@@ -406,4 +408,6 @@ class ValidarDTEWizard(models.TransientModel):
                 subtype='mt_comment',
             )
             inv.claim = 'ERM'
-            inv.set_dte_claim()
+            inv.set_dte_claim(
+                rut_emisor=inv.format_vat(inv.partner_id.vat),
+            )
