@@ -409,6 +409,35 @@ class UploadXMLWizard(models.TransientModel):
             res = False
         return res
 
+    def _buscar_impuesto(self, name="Impuesto", amount=0, sii_code=0, sii_type=False, IndExe=False):
+        query = [
+            ('amount', '=', amount),
+            ('sii_code', '=', sii_code),
+            ('type_tax_use', '=', 'purchase'),
+        ]
+        if IndExe:
+            query.append(
+                    ('sii_type', '=', False)
+            )
+        if amount == 0 and sii_code == 0 and not IndExe:
+            query.append(
+                    ('name', '=', name)
+            )
+        if sii_type:
+            query.extend( [
+                ('sii_type', '=', sii_type),
+            ])
+        imp = self.env['account.tax'].search( query )
+        if not imp:
+            imp = self.env['account.tax'].sudo().create( {
+                'amount': amount,
+                'name': name,
+                'sii_code': sii_code,
+                'sii_type': sii_type,
+                'type_tax_use': 'purchase',
+            } )
+        return ((6,0, imp.ids))
+
     def _create_prod(self, data):
         product_id = self.env['product.product'].create({
             'sale_ok':False,
@@ -432,7 +461,7 @@ class UploadXMLWizard(models.TransientModel):
                         product_id.barcode = c['VlrCodigo']
                     else:
                         product_id.default_code = c['VlrCodigo']
-        return product_id.id
+        return product_id
 
     def _buscar_producto(self, document_id, line):
         default_code = False
@@ -491,7 +520,7 @@ class UploadXMLWizard(models.TransientModel):
             else:
                 code = ' ' + str(line['CdgItem']) if 'CdgItem' in line else ''
                 return line['NmbItem'] + '' + code
-        if not product_supplier:
+        if not product_supplier and document_id.partner_id:
             supplier_info = {
                 'name': document_id.partner_id.id,
                 'product_name' : line['NmbItem'],
@@ -499,7 +528,7 @@ class UploadXMLWizard(models.TransientModel):
                 'product_tmpl_id': product_id.product_tmpl_id.id,
                 'price': float(line['PrcItem'] if 'PrcItem' in line else line['MontoItem']),
             }
-            self.env['product.supplierinfo'].search(supplier_info)
+            self.env['product.supplierinfo'].create(supplier_info)
 
         return product_id.id
 
@@ -519,7 +548,7 @@ class UploadXMLWizard(models.TransientModel):
         if type in ('out_invoice', 'in_refund'):
                 account_id = journal.default_credit_account_id.id
         if 'MntExe' in line:
-            price_subtotal = price_included = float(line['MntExe'])
+            price_subtotal = float(line['MntExe'])
         else :
             price_subtotal = float(line['MontoItem'])
         discount = 0
@@ -651,6 +680,35 @@ class UploadXMLWizard(models.TransientModel):
                 new_line = self._prepare_line(line, document_id=document_id, journal=journal_document_class_id.journal_id, type=data['type'])
                 if new_line:
                     lines.append(new_line)
+        product_id = self.env['product.product'].search([
+                ('product_tmpl_id', '=', self.env.ref('l10n_cl_dte.product_imp').id),
+            ]
+        ).id
+        if 'ImptoReten' in dte['Encabezado']['Totales']:
+            Totales = dte['Encabezado']['Totales']
+            imp = self._buscar_impuesto(name="OtrosImps", sii_code=Totales['ImptoReten']['TipoImp'])
+            lines.append([0,0,{
+                'invoice_line_tax_ids': [ imp ],
+                'product_id': product_id,
+                'name': 'MontoImpuesto %s' % str(Totales['ImptoReten']['TipoImp']),
+                'price_unit': Totales['ImptoReten']['MontoImp'],
+                'quantity': 1,
+                'price_subtotal': Totales['ImptoReten']['MontoImp'],
+                'account_id':  journal_document_class_id.journal_id.default_debit_account_id.id
+                }]
+            )
+        #if 'IVATerc' in dte['Encabezado']['Totales']:
+        #    imp = self._buscar_impuesto(name="IVATerc" )
+        #    lines.append([0,0,{
+        #        'invoice_line_tax_ids': [ imp ],
+        #        'product_id': product_id,
+        #        'name': 'MontoImpuesto IVATerc' ,
+        #        'price_unit': dte['Encabezado']['Totales']['IVATerc'],
+        #        'quantity': 1,
+        #        'price_subtotal': dte['Encabezado']['Totales']['IVATerc'],
+        #        'account_id':  journal_document_class_id.journal_id.default_debit_account_id.id
+        #        }]
+        #    )
         if not self.pre_process and 'Referencia' in dte:
             refs = [(5,)]
             if 'NroLinRef' in dte['Referencia']:
@@ -664,6 +722,10 @@ class UploadXMLWizard(models.TransientModel):
                     refs.append(self._prepare_ref(ref))
             data['referencias'] = refs
         data['invoice_line_ids'] = lines
+        mnt_neto = int(dte['Encabezado']['Totales']['MntNeto']) if 'MntNeto' in dte['Encabezado']['Totales'] else 0
+        mnt_neto += int(dte['Encabezado']['Totales']['MntExe']) if 'MntExe' in dte['Encabezado']['Totales'] else 0
+        data['amount_untaxed'] = mnt_neto
+        data['amount_total'] = dte['Encabezado']['Totales']['MntTotal']
         return data
 
     def _inv_exist(self, dte):
@@ -683,15 +745,13 @@ class UploadXMLWizard(models.TransientModel):
             monto_xml = float(documento['Encabezado']['Totales']['MntTotal'])
             if inv.amount_total == monto_xml:
                 return inv
-            #cuadrar en caso de descuadre por 1$
-            #if (inv.amount_total - 1) == monto_xml or (inv.amount_total + 1) == monto_xml:
             inv.amount_total = monto_xml
             for t in inv.tax_line_ids:
-                if t.tax_id.amount == float(documento['Encabezado']['Totales']['TasaIVA']):
+                if 'TasaIVA' in documento['Encabezado']['Totales'] and t.tax_id.amount == float(documento['Encabezado']['Totales']['TasaIVA']):
                     t.amount = float(documento['Encabezado']['Totales']['IVA'])
                     t.base = float(documento['Encabezado']['Totales']['MntNeto'])
-            #else:
-            #    raise UserError('¡El documento está completamente descuadrado!')
+                else:
+                    t.base = documento['Encabezado']['Totales']['MntExe']
         return inv
 
     def _dte_exist(self, dte):

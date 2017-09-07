@@ -192,12 +192,11 @@ class ProcessMailsDocument(models.Model):
 
         wiz_acept = self.env['sii.dte.validar.wizard'].create(
             {
-                'invoice_ids': [(6, 0, rejected)],
                 'action': 'validate',
-                'option': self.option,
+                'option': 'reject',
             }
         )
-        wiz_acept.confirm()
+        wiz_acept.do_reject(self)
 
 
 class ProcessMailsDocumentLines(models.Model):
