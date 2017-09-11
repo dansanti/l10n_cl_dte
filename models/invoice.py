@@ -192,10 +192,8 @@ class invoice(models.Model):
             data = data.decode(encoding, data).encode(new_coding)
         return data
 
-    def xml_validator(self, some_xml_string, validacion='doc'):
-        if validacion == 'bol':
-            return True
-        validacion_type = {
+    def _get_xsd_types(self):
+        return  {
             'doc': 'DTE_v10.xsd',
             'env': 'EnvioDTE_v10.xsd',
             'env_boleta': 'EnvioBOLETA_v11.xsd',
@@ -204,6 +202,11 @@ class invoice(models.Model):
             'env_resp': 'RespuestaEnvioDTE_v10.xsd',
             'sig': 'xmldsignature_v10.xsd'
         }
+
+    def xml_validator(self, some_xml_string, validacion='doc'):
+        if validacion == 'bol':
+            return True
+        validacion_type = self._get_xsd_types()
         xsd_file = xsdpath+validacion_type[validacion]
         try:
             xmlschema_doc = etree.parse(xsd_file)
@@ -214,7 +217,7 @@ class invoice(models.Model):
                 xmlschema.assert_(xml_doc)
             return result
         except AssertionError as e:
-            _logger.info(etree.tostring(xml_doc))
+            _logger.warning(etree.tostring(xml_doc))
             raise UserError(_('XML Malformed Error:  %s') % e.args)
 
     '''
@@ -402,6 +405,21 @@ version="1.0">
             s = (blocksize - len(s) % blocksize) * b'\000' + s
         return s
 
+    def _append_sig(self, type, msg, message):
+        if type in ['doc', 'bol']:
+            fulldoc = self.create_template_doc1(message, msg)
+        if type=='env':
+            fulldoc = self.create_template_env1(message,msg)
+        if type=='recep':
+            fulldoc = self.append_sign_recep(message,msg)
+        if type=='env_recep':
+            fulldoc = self.append_sign_env_recep(message,msg)
+        if type=='env_resp':
+            fulldoc = self.append_sign_env_resp(message,msg)
+        if type=='env_boleta':
+            fulldoc = self.append_sign_env_bol(message,msg)
+        return fulldoc
+
     def sign_full_xml(self, message, privkey, cert, uri, type='doc'):
         doc = etree.fromstring(message)
         string = etree.tostring(doc[0])
@@ -448,20 +466,8 @@ version="1.0">
         x509_certificate.text = '\n'+textwrap.fill(cert,64)
         msg = etree.tostring(sig_root)
         msg = msg if self.xml_validator(msg, 'sig') else ''
-        if type in ['doc', 'bol']:
-            fulldoc = self.create_template_doc1(message, msg)
-        if type=='env':
-            fulldoc = self.create_template_env1(message,msg)
-        if type=='recep':
-            fulldoc = self.append_sign_recep(message,msg)
-        if type=='env_recep':
-            fulldoc = self.append_sign_env_recep(message,msg)
-        if type=='env_resp':
-            fulldoc = self.append_sign_env_resp(message,msg)
-        if type=='env_boleta':
-            fulldoc = self.append_sign_env_bol(message,msg)
-        fulldoc = fulldoc if self.xml_validator(fulldoc, type) else ''
-        return fulldoc
+        fulldoc = self._append_sig(type, msg, message)
+        return fulldoc if self.xml_validator(fulldoc, type) else ''
 
     def get_digital_signature_pem(self, comp_id):
         obj = user = self[0].responsable_envio if self else False
