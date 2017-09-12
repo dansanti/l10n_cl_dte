@@ -477,8 +477,8 @@ version="1.0">
             obj = comp_id
             if not obj or not obj.cert:
                 obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
-                if not obj.cert or not user.id in obj.authorized_users_ids.ids:
-                    return False
+            if not obj.cert or not user.id in obj.authorized_users_ids.ids:
+                return False
         signature_data = {
             'subject_name': obj.name,
             'subject_serial_number': obj.subject_serial_number,
@@ -495,11 +495,11 @@ version="1.0">
         if not obj:
             obj = user = self.env.user
         if not obj.cert:
-            obj = self.env['res.company'].browse([comp_id.id])
+            obj = comp_id
             if not obj or not obj.cert:
                 obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
-                if not obj.cert or not user.id in obj.authorized_users_ids.ids:
-                    return False
+            if not obj.cert or not user.id in obj.authorized_users_ids.ids:
+                return False
         signature_data = {
             'subject_name': obj.name,
             'subject_serial_number': obj.subject_serial_number,
