@@ -523,13 +523,21 @@ version="1.0">
             'dte_resolution_number': comp_id.dte_resolution_number}
         return resolution_data
 
-    def init_params(self, signature_d, company_id):
+    def init_params(self, signature_d, company_id, file_name, envio_dte):
         params = collections.OrderedDict()
         params['rutSender'] = signature_d['subject_serial_number'][:8]
         params['dvSender'] = signature_d['subject_serial_number'][-1]
         params['rutCompany'] = company_id.vat[2:-1]
         params['dvCompany'] = company_id.vat[-1]
+        params['archivo'] = (file_name,envio_dte, "text/xml")
         return params
+
+    def procesar_recepcion(self, retorno, respuesta_dict):
+        if respuesta_dict['RECEPCIONDTE']['STATUS'] != '0':
+            _logger.info(connection_status[respuesta_dict['RECEPCIONDTE']['STATUS']])
+        else:
+            retorno.update({'sii_result': 'Enviado','sii_send_ident':respuesta_dict['RECEPCIONDTE']['TRACKID']})
+        return retorno
 
     @api.multi
     def send_xml_file(self, envio_dte=None, file_name="envio", company_id=False, sii_result='NoEnviado', doc_ids='', post='/cgi_dte/UPL/DTEUpload'):
@@ -561,8 +569,12 @@ version="1.0">
             'Cache-Control': 'no-cache',
             'Cookie': 'TOKEN={}'.format(token),
         }
-        params = self.init_params(signature_d, company_id)
-        params['archivo'] = (file_name,envio_dte, "text/xml")
+        params = self.init_params(
+            signature_d,
+            company_id,
+            file_name,
+            envio_dte,
+        )
         multi  = urllib3.filepost.encode_multipart_formdata(params)
         headers.update({'Content-Length': '{}'.format(len(multi[0]))})
         response = pool.request_encode_body('POST', url+post, params, headers)
@@ -570,10 +582,7 @@ version="1.0">
         if response.status != 200:
             return retorno
         respuesta_dict = xmltodict.parse(response.data)
-        if respuesta_dict['RECEPCIONDTE']['STATUS'] != '0':
-            _logger.info(connection_status[respuesta_dict['RECEPCIONDTE']['STATUS']])
-        else:
-            retorno.update({'sii_result': 'Enviado','sii_send_ident':respuesta_dict['RECEPCIONDTE']['TRACKID']})
+        retorno = self.procesar_recepcion(retorno, respuesta_dict)
         return retorno
 
     def crear_intercambio(self):
