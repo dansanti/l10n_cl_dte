@@ -523,8 +523,16 @@ version="1.0">
             'dte_resolution_number': comp_id.dte_resolution_number}
         return resolution_data
 
+    def init_params(self, signature_d, company_id):
+        params = collections.OrderedDict()
+        params['rutSender'] = signature_d['subject_serial_number'][:8]
+        params['dvSender'] = signature_d['subject_serial_number'][-1]
+        params['rutCompany'] = company_id.vat[2:-1]
+        params['dvCompany'] = company_id.vat[-1]
+        return params
+
     @api.multi
-    def send_xml_file(self, envio_dte=None, file_name="envio",company_id=False, sii_result='NoEnviado', doc_ids=''):
+    def send_xml_file(self, envio_dte=None, file_name="envio", company_id=False, sii_result='NoEnviado', doc_ids='', post='/cgi_dte/UPL/DTEUpload'):
         if not company_id.dte_service_provider:
             raise UserError(_("Not Service provider selected!"))
         #try:
@@ -543,7 +551,6 @@ version="1.0">
         url = 'https://palena.sii.cl'
         if company_id.dte_service_provider == 'SIIHOMO':
             url = 'https://maullin.sii.cl'
-        post = '/cgi_dte/UPL/DTEUpload'
         headers = {
             'Accept': 'image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-powerpoint, application/ms-excel, application/msword, */*',
             'Accept-Language': 'es-cl',
@@ -554,12 +561,8 @@ version="1.0">
             'Cache-Control': 'no-cache',
             'Cookie': 'TOKEN={}'.format(token),
         }
-        params = collections.OrderedDict()
-        params['rutSender'] = signature_d['subject_serial_number'][:8]
-        params['dvSender'] = signature_d['subject_serial_number'][-1]
-        params['rutCompany'] = company_id.vat[2:-1]
-        params['dvCompany'] = company_id.vat[-1]
-        params['archivo'] = (file_name,envio_dte,"text/xml")
+        params = self.init_params(signature_d, company_id)
+        params['archivo'] = (file_name,envio_dte, "text/xml")
         multi  = urllib3.filepost.encode_multipart_formdata(params)
         headers.update({'Content-Length': '{}'.format(len(multi[0]))})
         response = pool.request_encode_body('POST', url+post, params, headers)
@@ -984,11 +987,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         #    Encabezado['IdDoc']['IndServicio'] = 1,2,3,4
         # todo: forma de pago y fecha de vencimiento - opcional
         if taxInclude and MntExe == 0 and not self._es_boleta():
-        	IdDoc['MntBruto'] = 1
+            IdDoc['MntBruto'] = 1
         if not self._es_boleta():
             IdDoc['FmaPago'] = self.forma_pago or 1
         if not taxInclude and self._es_boleta():
-        	IdDoc['IndMntNeto'] = 2
+            IdDoc['IndMntNeto'] = 2
         #if self._es_boleta():
             #Servicios periódicos
         #    IdDoc['PeriodoDesde'] =
@@ -1204,7 +1207,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             line_number += 1
             invoice_lines.extend([{'Detalle': lines}])
             if 'IndExe' in lines:
-            	taxInclude = False
+                taxInclude = False
         return {
                 'invoice_lines': invoice_lines,
                 'MntExe':MntExe,
@@ -1266,7 +1269,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     def _tpo_dte(self):
         tpo_dte = "Documento"
         if self.sii_document_class_id.sii_code == 43:
-        	tpo_dte = 'Liquidacion'
+            tpo_dte = 'Liquidacion'
         return tpo_dte
 
     def _timbrar(self, n_atencion=None):
