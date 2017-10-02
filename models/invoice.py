@@ -193,21 +193,24 @@ class invoice(models.Model):
         return data
 
     def _get_xsd_types(self):
-        return  {
-            'doc': 'DTE_v10.xsd',
-            'env': 'EnvioDTE_v10.xsd',
-            'env_boleta': 'EnvioBOLETA_v11.xsd',
-            'recep' : 'Recibos_v10.xsd',
-            'env_recep' : 'EnvioRecibos_v10.xsd',
-            'env_resp': 'RespuestaEnvioDTE_v10.xsd',
-            'sig': 'xmldsignature_v10.xsd'
+        return {
+          'doc': 'DTE_v10.xsd',
+          'env': 'EnvioDTE_v10.xsd',
+          'env_boleta': 'EnvioBOLETA_v11.xsd',
+          'recep' : 'Recibos_v10.xsd',
+          'env_recep' : 'EnvioRecibos_v10.xsd',
+          'env_resp': 'RespuestaEnvioDTE_v10.xsd',
+          'sig': 'xmldsignature_v10.xsd'
         }
+
+    def _get_xsd_file(self, validacion, path=False):
+        validacion_type = self._get_xsd_types()
+        return (path or xsdpath) + validacion_type[validacion]
 
     def xml_validator(self, some_xml_string, validacion='doc'):
         if validacion == 'bol':
             return True
-        validacion_type = self._get_xsd_types()
-        xsd_file = xsdpath+validacion_type[validacion]
+        xsd_file = self._get_xsd_file(validacion)
         try:
             xmlschema_doc = etree.parse(xsd_file)
             xmlschema = etree.XMLSchema(xmlschema_doc)
@@ -477,8 +480,8 @@ version="1.0">
             obj = comp_id
             if not obj or not obj.cert:
                 obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
-                if not obj.cert or not user.id in obj.authorized_users_ids.ids:
-                    return False
+            if not obj.cert or not user.id in obj.authorized_users_ids.ids:
+                return False
         signature_data = {
             'subject_name': obj.name,
             'subject_serial_number': obj.subject_serial_number,
@@ -495,11 +498,11 @@ version="1.0">
         if not obj:
             obj = user = self.env.user
         if not obj.cert:
-            obj = self.env['res.company'].browse([comp_id.id])
+            obj = comp_id
             if not obj or not obj.cert:
                 obj = self.env['res.users'].search([("authorized_users_ids","=", user.id)])
-                if not obj.cert or not user.id in obj.authorized_users_ids.ids:
-                    return False
+            if not obj.cert or not user.id in obj.authorized_users_ids.ids:
+                return False
         signature_data = {
             'subject_name': obj.name,
             'subject_serial_number': obj.subject_serial_number,
@@ -520,8 +523,24 @@ version="1.0">
             'dte_resolution_number': comp_id.dte_resolution_number}
         return resolution_data
 
+    def init_params(self, signature_d, company_id, file_name, envio_dte):
+        params = collections.OrderedDict()
+        params['rutSender'] = signature_d['subject_serial_number'][:8]
+        params['dvSender'] = signature_d['subject_serial_number'][-1]
+        params['rutCompany'] = company_id.vat[2:-1]
+        params['dvCompany'] = company_id.vat[-1]
+        params['archivo'] = (file_name,envio_dte, "text/xml")
+        return params
+
+    def procesar_recepcion(self, retorno, respuesta_dict):
+        if respuesta_dict['RECEPCIONDTE']['STATUS'] != '0':
+            _logger.info(connection_status[respuesta_dict['RECEPCIONDTE']['STATUS']])
+        else:
+            retorno.update({'sii_result': 'Enviado','sii_send_ident':respuesta_dict['RECEPCIONDTE']['TRACKID']})
+        return retorno
+
     @api.multi
-    def send_xml_file(self, envio_dte=None, file_name="envio",company_id=False, sii_result='NoEnviado', doc_ids=''):
+    def send_xml_file(self, envio_dte=None, file_name="envio", company_id=False, sii_result='NoEnviado', doc_ids='', post='/cgi_dte/UPL/DTEUpload'):
         if not company_id.dte_service_provider:
             raise UserError(_("Not Service provider selected!"))
         #try:
@@ -540,7 +559,6 @@ version="1.0">
         url = 'https://palena.sii.cl'
         if company_id.dte_service_provider == 'SIIHOMO':
             url = 'https://maullin.sii.cl'
-        post = '/cgi_dte/UPL/DTEUpload'
         headers = {
             'Accept': 'image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-powerpoint, application/ms-excel, application/msword, */*',
             'Accept-Language': 'es-cl',
@@ -551,12 +569,12 @@ version="1.0">
             'Cache-Control': 'no-cache',
             'Cookie': 'TOKEN={}'.format(token),
         }
-        params = collections.OrderedDict()
-        params['rutSender'] = signature_d['subject_serial_number'][:8]
-        params['dvSender'] = signature_d['subject_serial_number'][-1]
-        params['rutCompany'] = company_id.vat[2:-1]
-        params['dvCompany'] = company_id.vat[-1]
-        params['archivo'] = (file_name,envio_dte,"text/xml")
+        params = self.init_params(
+            signature_d,
+            company_id,
+            file_name,
+            envio_dte,
+        )
         multi  = urllib3.filepost.encode_multipart_formdata(params)
         headers.update({'Content-Length': '{}'.format(len(multi[0]))})
         response = pool.request_encode_body('POST', url+post, params, headers)
@@ -564,10 +582,7 @@ version="1.0">
         if response.status != 200:
             return retorno
         respuesta_dict = xmltodict.parse(response.data)
-        if respuesta_dict['RECEPCIONDTE']['STATUS'] != '0':
-            _logger.info(connection_status[respuesta_dict['RECEPCIONDTE']['STATUS']])
-        else:
-            retorno.update({'sii_result': 'Enviado','sii_send_ident':respuesta_dict['RECEPCIONDTE']['TRACKID']})
+        retorno = self.procesar_recepcion(retorno, respuesta_dict)
         return retorno
 
     def crear_intercambio(self):
@@ -981,11 +996,11 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         #    Encabezado['IdDoc']['IndServicio'] = 1,2,3,4
         # todo: forma de pago y fecha de vencimiento - opcional
         if taxInclude and MntExe == 0 and not self._es_boleta():
-        	IdDoc['MntBruto'] = 1
+            IdDoc['MntBruto'] = 1
         if not self._es_boleta():
             IdDoc['FmaPago'] = self.forma_pago or 1
         if not taxInclude and self._es_boleta():
-        	IdDoc['IndMntNeto'] = 2
+            IdDoc['IndMntNeto'] = 2
         #if self._es_boleta():
             #Servicios periódicos
         #    IdDoc['PeriodoDesde'] =
@@ -1201,7 +1216,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
             line_number += 1
             invoice_lines.extend([{'Detalle': lines}])
             if 'IndExe' in lines:
-            	taxInclude = False
+                taxInclude = False
         return {
                 'invoice_lines': invoice_lines,
                 'MntExe':MntExe,
@@ -1263,7 +1278,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
     def _tpo_dte(self):
         tpo_dte = "Documento"
         if self.sii_document_class_id.sii_code == 43:
-        	tpo_dte = 'Liquidacion'
+            tpo_dte = 'Liquidacion'
         return tpo_dte
 
     def _timbrar(self, n_atencion=None):

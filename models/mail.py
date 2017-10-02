@@ -161,7 +161,25 @@ class ProcessMailsDocument(models.Model):
         string="XML Documento",
         readonly=True,
     )
-    _order = 'date DESC'
+
+    _order = 'create_date DESC'
+
+    @api.model
+    def auto_acept_documents(self):
+        self.env.cr.execute(
+            """
+            select
+                id
+            from
+                mail_message_dte_document
+            where
+                create_date + interval '8 days' < now()
+                and
+                state = 'draft'
+            """
+        )
+        for d in self.browse([line.get('id') for line in self.env.cr.dictfetchall()]):
+            d.acept_document()
 
     @api.multi
     def acept_document(self):
