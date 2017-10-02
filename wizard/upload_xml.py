@@ -127,8 +127,8 @@ class UploadXMLWizard(models.TransientModel):
         mess = etree.tostring(etree.fromstring(string), method="c14n")
         inv_obj = self.env['account.invoice']
         our = base64.b64encode(inv_obj.digest(mess))
-        if our != xml.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text:
-            return 2, 'Envio Rechazado - Error de Firma'
+        #if our != xml.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text:
+        #    return 2, 'Envio Rechazado - Error de Firma'
         return 0, 'Envio Ok'
 
     def _check_digest_dte(self, dte):
@@ -164,8 +164,8 @@ class UploadXMLWizard(models.TransientModel):
                 ('vat','=', self.format_rut(cara['RutEmisor']))
             ]
         )
-        if not partner_id :
-            return 2, 'Rut no coincide con los registros'
+#        if not partner_id :
+#            return 2, 'Rut no coincide con los registros'
         #for SubTotDTE in cara['SubTotDTE']:
         #    sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(SubTotDTE['TipoDTE']))])
         #    if not sii_document_class:
