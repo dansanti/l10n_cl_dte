@@ -161,6 +161,11 @@ class ProcessMailsDocument(models.Model):
         string="XML Documento",
         readonly=True,
     )
+    purchase_to_done = fields.Many2many(
+        'purchase.order',
+        string="Ordenes de Compra a validar",
+        domain=[('state', 'not in',['acepted', 'rejected'] )],
+    )
 
     _order = 'create_date DESC'
 

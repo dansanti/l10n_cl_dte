@@ -726,6 +726,12 @@ class UploadXMLWizard(models.TransientModel):
         mnt_neto += int(dte['Encabezado']['Totales']['MntExe']) if 'MntExe' in dte['Encabezado']['Totales'] else 0
         data['amount_untaxed'] = mnt_neto
         data['amount_total'] = dte['Encabezado']['Totales']['MntTotal']
+        if document_id:
+            purchase_to_done = False
+            if document_id.purchase_to_done:
+                purchase_to_done = document_id.purchase_to_done.ids()
+            if purchase_to_done:
+                data['purchase_to_done'] = purchase_to_done
         return data
 
     def _inv_exist(self, dte):

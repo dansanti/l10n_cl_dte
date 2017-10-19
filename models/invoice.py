@@ -913,6 +913,13 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         string="Detalle Reclamo",
         readonly=True,
     )
+    purchase_to_done = fields.Many2many(
+        'purchase.order',
+        string="Ordenes de Compra a validar",
+        domain=[('state', 'not in',['done', 'cancel'] )],
+        readonly=True,
+        states={'draft': [('readonly', False)]},
+    )
 
     @api.multi
     def get_related_invoices_data(self):
@@ -951,6 +958,9 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                                                 'tipo_trabajo': 'pasivo',
                                                 'date_time': (datetime.now() + timedelta(hours=12)),
                                                 })
+            if inv.purchase_to_done:
+                for ptd in inv.purchase_to_done:
+                    ptd.write({'state': 'done'})
         super(invoice,self).invoice_validate()
 
     @api.multi

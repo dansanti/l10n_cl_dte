@@ -62,6 +62,9 @@
                 <field name="invoice_line_ids" position="attributes">
                     <attribute name="context">{'partner_id': partner_id, 'price_type': context.get('price_type') or False, 'type': type}" name="invoice_line_ids" on_change="onchange_invoice_line(invoice_line_ids)</attribute>
                 </field>
+                <field name="date_due" position="after">
+                  <field name="purchase_to_done" widget="many2many_tags" options="{'no_create': True}"/>
+                </field>
                 <notebook>
                     <page string="Electronic Invoice" name="electronic_invoice" >
                       <header>
