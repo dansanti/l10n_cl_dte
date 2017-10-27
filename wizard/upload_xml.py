@@ -108,7 +108,7 @@ class UploadXMLWizard(models.TransientModel):
         if self.document_id:
             xml = self.document_id.xml
         elif self.xml_file:
-            xml = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
+            xml = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','').replace('<?xml version="1.0" encoding="ISO-8859-1" ?>','')
         if mode == "etree":
             return etree.fromstring(xml)
         if mode == "parse":
@@ -491,9 +491,9 @@ class UploadXMLWizard(models.TransientModel):
                 default_code = line['CdgItem']['VlrCodigo']
             else:
                 try:
-                    Codes = data['CdgItem']['item']
+                    Codes = line['CdgItem']['item']
                 except:
-                    Codes = data['CdgItem']
+                    Codes = line['CdgItem']
                 for c in Codes:
                     if c['TpoCodigo'] == 'ean13':
                         query = [('barcode','=',c['VlrCodigo'])]
