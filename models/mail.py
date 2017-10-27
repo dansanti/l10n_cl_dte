@@ -65,6 +65,8 @@ class ProccessMail(models.Model):
         readonly=True,
     )
 
+    _order = 'create_date DESC'
+
     def pre_process(self):
         self.process_message(pre=True)
 
