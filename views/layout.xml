@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<odoo>
   <template t-name="l10n_cl_dte.dte_external_layout">
     <style>
       .table{
@@ -527,4 +527,4 @@
               </t>
           </div>
       </template>
-</openerp>
+</odoo>

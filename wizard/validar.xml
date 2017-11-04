@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<odoo>
     <data>
         <record id="sii_dte_validar_form" model="ir.ui.view">
             <field name="name">SII WS Consult Wizard form</field>
@@ -20,4 +20,4 @@
             </field>
         </record>
     </data>
-</openerp>
+</odoo>

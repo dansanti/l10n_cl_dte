@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<odoo>
     <data>
         <record id="sii_dte_upload_xml_form" model="ir.ui.view">
             <field name="name">Subir XML de Envío</field>
@@ -41,4 +41,4 @@
            parent="account.menu_finance_payables"
            sequence="4"/>
     </data>
-</openerp>
+</odoo>
