@@ -686,7 +686,7 @@ class UploadXMLWizard(models.TransientModel):
         ).id
         if 'ImptoReten' in dte['Encabezado']['Totales']:
             Totales = dte['Encabezado']['Totales']
-            imp = self._buscar_impuesto(name="OtrosImps", sii_code=Totales['ImptoReten']['TipoImp'])
+            imp = self._buscar_impuesto(name="OtrosImps_" + str(Totales['ImptoReten']['TipoImp']), sii_code=Totales['ImptoReten']['TipoImp'])
             lines.append([0,0,{
                 'invoice_line_tax_ids': [ imp ],
                 'product_id': product_id,
