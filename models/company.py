@@ -1,4 +1,4 @@
-from openerp import fields, models, api, _
+from odoo import fields, models, api, _
 
 
 class dteEmail(models.Model):
