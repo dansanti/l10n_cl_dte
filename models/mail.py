@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from openerp import fields, models, api, _
+from odoo import fields, models, api, _
+from odoo.exceptions import UserError
 import logging
+
 _logger = logging.getLogger(__name__)
 
 status_dte = [
