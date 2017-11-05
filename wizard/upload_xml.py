@@ -780,6 +780,7 @@ class UploadXMLWizard(models.TransientModel):
             })
             return self.env['mail.message.dte.document'].create(data)
         _logger.warning(_("El documento ya se encuentra regsitrado" ))
+        return dte
 
     def _get_dtes(self):
         dtes = []
