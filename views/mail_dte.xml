@@ -5,8 +5,8 @@
     <field name="model">mail.message.dte</field>
     <field name="arch" type="xml">
       <tree string="Dtes">
+        <field name="create_date"/>
         <field name="name"/>
-        <field name="mail_id"/>
         <field name="document_ids"  />
         <field name="company_id" />
       </tree>

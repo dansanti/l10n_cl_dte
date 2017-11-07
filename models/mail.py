@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import fields, models, api, _
-from odoo.exceptions import UserError
 import logging
-
 _logger = logging.getLogger(__name__)
 
 status_dte = [
@@ -67,11 +65,13 @@ class ProccessMail(models.Model):
         readonly=True,
     )
 
+    _order = 'create_date DESC'
+
     def pre_process(self):
         self.process_message(pre=True)
 
     @api.multi
-    def process_message(self, pre=False):
+    def process_message(self, pre=False, option=False):
         for r in self:
             for att in r.sudo().mail_id.attachment_ids:
                 if not att.name:
@@ -83,6 +83,7 @@ class ProccessMail(models.Model):
                         'filename': att.name,
                         'pre_process': pre,
                         'dte_id': r.id,
+                        'option': option,
                     }
                     val = self.env['sii.dte.upload_xml.wizard'].create(vals)
                     created = val.confirm(ret=True)

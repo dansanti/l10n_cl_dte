@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="sii_masive_dte_process_wizard_form" model="ir.ui.view">
+            <field name="name">SII WS Consult Wizard form</field>
+            <field name="model">sii.dte.masive.process.wizard</field>
+            <field name="arch" type="xml">
+                <form string="SII DTE masive Process Wizard">
+                    <group>
+                        <field name="action" />
+                    </group>
+                    <footer>
+                        <button string="Confirm" name="confirm" type="object" class="oe_highlight" />
+                        or
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <act_window id="action_account_dte_process"
+            multi="True"
+            key2="client_action_multi"
+            name="Procesar DTEs recibidos"
+            res_model="sii.dte.masive.process.wizard"
+            src_model="mail.message.dte"
+            view_mode="form"
+            target="new"
+            view_type="form" />
+
+
+
+
+</odoo>
