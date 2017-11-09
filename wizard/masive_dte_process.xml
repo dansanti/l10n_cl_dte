@@ -19,7 +19,7 @@
 
         <act_window id="action_account_dte_process"
             multi="True"
-            key2="dte_action_multi"
+            key2="client_action_multi"
             name="Procesar DTEs recibidos"
             res_model="sii.dte.masive.process.wizard"
             src_model="mail.message.dte"
