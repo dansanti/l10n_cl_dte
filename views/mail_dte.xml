@@ -5,8 +5,8 @@
     <field name="model">mail.message.dte</field>
     <field name="arch" type="xml">
       <tree string="Dtes">
+        <field name="create_date"/>
         <field name="name"/>
-        <field name="mail_id"/>
         <field name="document_ids"  />
         <field name="company_id" />
       </tree>
@@ -89,16 +89,21 @@
         </header>
         <sheet>
           <group>
-            <field name="dte_id" />
-            <field name="date" />
-            <field name="new_partner" />
-            <field name="partner_id" />
-            <field name="number" />
-            <field name="sii_document_class_id" />
-            <field name="amount" />
-            <field name="currency_id" />
-            <field name="invoice_id" />
-            <field name="company_id" />
+            <group>
+              <field name="dte_id" />
+              <field name="date" />
+              <field name="new_partner" />
+              <field name="partner_id" />
+              <field name="number" />
+              <field name="sii_document_class_id" />
+            </group>
+            <group>
+              <field name="amount" />
+              <field name="currency_id" />
+              <field name="invoice_id" />
+              <field name="company_id" />
+              <field name="purchase_to_done" widget="many2many_tags" options="{'no_create': True}"/>
+            </group>
           </group>
           <notebook>
             <page string="Líneas del documento">

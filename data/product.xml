@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
     <record id="product_imp" model="product.template">
       <field name="name">Impuestos Varios</field>
       <field name="price">0</field>
       <field name="taxes_ids" eval="False" />
       <field name="sale_ok" eval="False" />
     </record>
-</openerp>
+</odoo>

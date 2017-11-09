@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-from openerp import fields, models, api, _
+##############################################################################
+# For copyright and license notices, see __openerp__.py file in module root
+# directory
+##############################################################################
+from odoo import fields, models, api, _
 
 class SiiRegionalOffices(models.Model):
     _name='sii.regional.offices'

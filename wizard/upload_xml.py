@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from openerp import models, fields, api, _
-from openerp.exceptions import UserError
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 import logging
 import base64
 import xmltodict
@@ -108,7 +108,7 @@ class UploadXMLWizard(models.TransientModel):
         if self.document_id:
             xml = self.document_id.xml
         elif self.xml_file:
-            xml = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','')
+            xml = base64.b64decode(self.xml_file).decode('ISO-8859-1').replace('<?xml version="1.0" encoding="ISO-8859-1"?>','').replace('<?xml version="1.0" encoding="ISO-8859-1" ?>','')
         if mode == "etree":
             return etree.fromstring(xml)
         if mode == "parse":
@@ -127,8 +127,8 @@ class UploadXMLWizard(models.TransientModel):
         mess = etree.tostring(etree.fromstring(string), method="c14n")
         inv_obj = self.env['account.invoice']
         our = base64.b64encode(inv_obj.digest(mess))
-        if our != xml.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text:
-            return 2, 'Envio Rechazado - Error de Firma'
+        #if our != xml.find("{http://www.w3.org/2000/09/xmldsig#}Signature/{http://www.w3.org/2000/09/xmldsig#}SignedInfo/{http://www.w3.org/2000/09/xmldsig#}Reference/{http://www.w3.org/2000/09/xmldsig#}DigestValue").text:
+        #    return 2, 'Envio Rechazado - Error de Firma'
         return 0, 'Envio Ok'
 
     def _check_digest_dte(self, dte):
@@ -164,8 +164,8 @@ class UploadXMLWizard(models.TransientModel):
                 ('vat','=', self.format_rut(cara['RutEmisor']))
             ]
         )
-        if not partner_id :
-            return 2, 'Rut no coincide con los registros'
+#        if not partner_id :
+#            return 2, 'Rut no coincide con los registros'
         #for SubTotDTE in cara['SubTotDTE']:
         #    sii_document_class = self.env['sii.document_class'].search([('sii_code','=', str(SubTotDTE['TipoDTE']))])
         #    if not sii_document_class:
@@ -491,9 +491,9 @@ class UploadXMLWizard(models.TransientModel):
                 default_code = line['CdgItem']['VlrCodigo']
             else:
                 try:
-                    Codes = data['CdgItem']['item']
+                    Codes = line['CdgItem']['item']
                 except:
-                    Codes = data['CdgItem']
+                    Codes = line['CdgItem']
                 for c in Codes:
                     if c['TpoCodigo'] == 'ean13':
                         query = [('barcode','=',c['VlrCodigo'])]
@@ -686,7 +686,7 @@ class UploadXMLWizard(models.TransientModel):
         ).id
         if 'ImptoReten' in dte['Encabezado']['Totales']:
             Totales = dte['Encabezado']['Totales']
-            imp = self._buscar_impuesto(name="OtrosImps", sii_code=Totales['ImptoReten']['TipoImp'])
+            imp = self._buscar_impuesto(name="OtrosImps_" + str(Totales['ImptoReten']['TipoImp']), sii_code=Totales['ImptoReten']['TipoImp'])
             lines.append([0,0,{
                 'invoice_line_tax_ids': [ imp ],
                 'product_id': product_id,
@@ -726,6 +726,12 @@ class UploadXMLWizard(models.TransientModel):
         mnt_neto += int(dte['Encabezado']['Totales']['MntExe']) if 'MntExe' in dte['Encabezado']['Totales'] else 0
         data['amount_untaxed'] = mnt_neto
         data['amount_total'] = dte['Encabezado']['Totales']['MntTotal']
+        if document_id:
+            purchase_to_done = False
+            if document_id.purchase_to_done:
+                purchase_to_done = document_id.purchase_to_done.ids()
+            if purchase_to_done:
+                data['purchase_to_done'] = purchase_to_done
         return data
 
     def _inv_exist(self, dte):
@@ -774,6 +780,7 @@ class UploadXMLWizard(models.TransientModel):
             })
             return self.env['mail.message.dte.document'].create(data)
         _logger.warning(_("El documento ya se encuentra regsitrado" ))
+        return dte
 
     def _get_dtes(self):
         dtes = []

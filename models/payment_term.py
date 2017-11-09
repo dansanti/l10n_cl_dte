@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from openerp import fields, models, api, _
-from openerp.exceptions import Warning
-import logging
+from odoo import fields, models, api, _
 
 class paymentTerm(models.Model):
     _inherit = 'account.payment.term'

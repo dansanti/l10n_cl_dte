@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from openerp import fields, models, api, _
+from odoo import fields, models, api, _
 import logging
 _logger = logging.getLogger(__name__)
 
@@ -65,11 +65,13 @@ class ProccessMail(models.Model):
         readonly=True,
     )
 
+    _order = 'create_date DESC'
+
     def pre_process(self):
         self.process_message(pre=True)
 
     @api.multi
-    def process_message(self, pre=False):
+    def process_message(self, pre=False, option=False):
         for r in self:
             for att in r.sudo().mail_id.attachment_ids:
                 if not att.name:
@@ -81,6 +83,7 @@ class ProccessMail(models.Model):
                         'filename': att.name,
                         'pre_process': pre,
                         'dte_id': r.id,
+                        'option': option,
                     }
                     val = self.env['sii.dte.upload_xml.wizard'].create(vals)
                     created = val.confirm(ret=True)
@@ -161,7 +164,30 @@ class ProcessMailsDocument(models.Model):
         string="XML Documento",
         readonly=True,
     )
-    _order = 'date DESC'
+    purchase_to_done = fields.Many2many(
+        'purchase.order',
+        string="Ordenes de Compra a validar",
+        domain=[('state', 'not in',['acepted', 'rejected'] )],
+    )
+
+    _order = 'create_date DESC'
+
+    @api.model
+    def auto_acept_documents(self):
+        self.env.cr.execute(
+            """
+            select
+                id
+            from
+                mail_message_dte_document
+            where
+                create_date + interval '8 days' < now()
+                and
+                state = 'draft'
+            """
+        )
+        for d in self.browse([line.get('id') for line in self.env.cr.dictfetchall()]):
+            d.acept_document()
 
     @api.multi
     def acept_document(self):
