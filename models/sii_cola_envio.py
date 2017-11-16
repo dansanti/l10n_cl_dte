@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-
-from openerp import fields, models, api, _
+from odoo import fields, models, api, _
 import ast
 from datetime import datetime
-from openerp.tools import DEFAULT_SERVER_DATETIME_FORMAT as DTF
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT as DTF
 import logging
 _logger = logging.getLogger(__name__)
 

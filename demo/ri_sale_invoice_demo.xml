@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
     <data>
     <!-- RI Sale invoices -->
         <!-- A cliente exterior en USD -->
@@ -239,4 +239,4 @@
         <!-- <workflow action="invoice_open" model="account.invoice" ref="demo_ri_refund_0"/> -->
 
     </data>
-</openerp>
+</odoo>

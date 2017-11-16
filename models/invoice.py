@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from openerp import fields, models, api, _
-from openerp.exceptions import UserError
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
 from datetime import datetime, timedelta, date
 import logging
 from lxml import etree
 from lxml.etree import Element, SubElement
-from openerp import SUPERUSER_ID
+from odoo import SUPERUSER_ID
 
 import xml.dom.minidom
 import pytz

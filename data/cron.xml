@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data noupdate="1">
         <record id="ir_cron_sii_request" model="ir.cron">
             <field name="name">Cron de envío y consulta estado documento en el sii</field>
@@ -22,4 +22,4 @@
             <field name="nextcall">02/10/2017 00:00:01 AM</field>
         </record>
     </data>
-</openerp>
+</odoo>

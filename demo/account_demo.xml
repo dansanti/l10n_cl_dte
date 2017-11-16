@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
     <data>
         <!-- Point of sales -->
         <record id="point_of_sale_3" model="sii.point_of_sale">
@@ -72,4 +72,4 @@
             <field name="point_of_sale_id" ref="point_of_sale_4"/>
         </record>
     </data>
-</openerp>
+</odoo>
