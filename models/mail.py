@@ -72,6 +72,7 @@ class ProccessMail(models.Model):
 
     @api.multi
     def process_message(self, pre=False, option=False):
+        created = []
         for r in self:
             for att in r.sudo().mail_id.attachment_ids:
                 if not att.name:
