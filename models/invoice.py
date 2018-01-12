@@ -956,12 +956,13 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                                                 'model':'account.invoice',
                                                 'user_id':self.env.user.id,
                                                 'tipo_trabajo': 'pasivo',
-                                                'date_time': (datetime.now() + timedelta(hours=12)),
+                                                'date_time': (datetime.now() + timedelta(hours=self.env['ir.config_parameter'].sudo().get_param('account.auto_send_dte', default=12))),
+                                                'send_email': False if inv.company_id.dte_service_provider=='SIIHOMO' or self.env['ir.config_parameter'].sudo().get_param('account.auto_send_email', default=True) else True,
                                                 })
             if inv.purchase_to_done:
                 for ptd in inv.purchase_to_done:
                     ptd.write({'state': 'done'})
-        super(invoice,self).invoice_validate()
+        return super(invoice,self).invoice_validate()
 
     @api.multi
     def do_dte_send_invoice(self, n_atencion=None):
@@ -980,7 +981,8 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                                     'model':'account.invoice',
                                     'user_id':self.env.user.id,
                                     'tipo_trabajo': 'envio',
-                                    'n_atencion': n_atencion
+                                    'n_atencion': n_atencion,
+                                    'send_email': False if inv.company_id.dte_service_provider=='SIIHOMO' or self.env['ir.config_parameter'].sudo().get_param('account.auto_send_email', default=True) else True,
                                     })
     def _es_boleta(self):
         if self.sii_document_class_id.sii_code in [35, 38, 39, 41, 70, 71]:

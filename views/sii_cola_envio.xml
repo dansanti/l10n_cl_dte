@@ -11,6 +11,7 @@
                     <field name="user_id" />
                     <field name='tipo_trabajo'/>
                     <field name="date_time"/>
+                    <field name="send_email"/>
                     <field name="active"/>
                   </group>
               </form>
@@ -27,6 +28,7 @@
                   <field name="user_id" />
                   <field name='tipo_trabajo'/>
                   <field name="date_time"/>
+                  <field name="send_email"/>
                   <field name="active"/>
               </tree>
           </field>

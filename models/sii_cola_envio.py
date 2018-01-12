@@ -17,6 +17,36 @@ class ColaEnvio(models.Model):
     active = fields.Boolean(string="Active", default=True)
     n_atencion = fields.Char(string="Número atención")
     date_time = fields.Datetime('Auto Envío al SII')
+    send_email = fields.Boolean(
+            string="Auto Enviar Email",
+            default=False,
+        )
+
+    def enviar_email(self, doc):
+        att = doc._create_attachment()
+        body = 'XML de Intercambio DTE: %s' % (doc.document_number)
+        subject = 'XML de Intercambio DTE: %s' % (doc.document_number)
+        doc.message_post(
+            body=body,
+            subject=subject,
+            partner_ids=[doc.partner_id.id],
+            attachment_ids=att.ids,
+            message_type='comment',
+            subtype='mt_comment',
+        )
+        if doc.partner_id.dte_email == doc.partner_id.email:
+            return
+        values = {
+            'email_from': doc.company_id.dte_email,
+            'email_to': doc.partner_id.dte_email,
+            'auto_delete': False,
+            'model' : self.model,
+            'body': body,
+            'subject': subject,
+            'attachment_ids': att.ids,
+        }
+        send_mail = self.env['mail.mail'].create(values)
+        send_mail.send()
 
     def _procesar_tipo_trabajo(self):
         docs = self.env[self.model].browse(ast.literal_eval(self.doc_ids))
@@ -30,6 +60,9 @@ class ColaEnvio(models.Model):
                 try:
                     docs.do_dte_send()
                     if docs[0].sii_send_ident:
+                        if self.send_email and docs[0].sii_result in ['Proceso', 'Reparo']:
+                            for doc in docs:
+                                self.enviar_email(doc)
                         self.tipo_trabajo = 'consulta'
                 except Exception as e:
                     for d in docs:
@@ -37,7 +70,7 @@ class ColaEnvio(models.Model):
                     _logger.warning('Error en Envío automático')
                     _logger.warning(str(e))
             return
-        if docs[0].sii_send_ident and docs[0].sii_message and docs[0].sii_result in ['Proceso', 'Rechazado']:
+        if docs[0].sii_send_ident and docs[0].sii_message and docs[0].sii_result in ['Proceso', 'Reparo', 'Rechazado']:
             self.unlink()
             return
         else:
@@ -47,6 +80,9 @@ class ColaEnvio(models.Model):
                 try:
                     docs.do_dte_send(self.n_atencion)
                     if docs[0].sii_result not in ['', 'NoEnviado']:
+                        if self.send_email and docs[0].sii_result in ['Proceso', 'Reparo']:
+                            for doc in docs:
+                                self.enviar_email(doc)
                         self.tipo_trabajo = 'consulta'
                 except Exception as e:
                     _logger.warning("Error en envío Cola")
