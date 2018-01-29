@@ -29,7 +29,6 @@ class ResConfigSettings(models.TransientModel):
 
     @api.multi
     def set_values(self):
-        super(ResConfigSettings, self).set_values()
         ICPSudo = self.env['ir.config_parameter'].sudo()
         ICPSudo.set_param('account.auto_send_dte', self.auto_send_dte)
         ICPSudo.set_param('account.auto_send_email', self.auto_send_email)
