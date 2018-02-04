@@ -1120,7 +1120,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         TasaIVA = False
         MntIVA = 0
         if self.sii_document_class_id.sii_code == 34 or (self.referencias and self.referencias[0].sii_referencia_TpoDocRef.sii_code == '34'):
-            MntExe = int(round(self.amount_total, 0))
+            MntExe = self.currency_id.round(self.amount_total)
             if  no_product:
                 MntExe = 0
         elif self.amount_untaxed and self.amount_untaxed != 0:
