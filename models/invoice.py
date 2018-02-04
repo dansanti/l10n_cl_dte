@@ -1131,23 +1131,23 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                         IVA = t
                 if IVA and IVA.base > 0 :
                     MntNeto = self.currency_id.round(IVA.base)
-            if MntExe > 0:
-                MntExe = self.currency_id.round( MntExe)
-            if not self._es_boleta() or not taxInclude:
-                if IVA:
-                    if not self._es_boleta():
-                        TasaIVA = round(IVA.tax_id.amount, 2)
-                    MntIVA = self.currency_id.round(IVA.amount)
-                if no_product:
-                    MntNeto = 0
-                    if not self._es_boleta():
-                        TasaIVA = 0
-                    MntIVA = 0
-            if IVA and IVA.tax_id.sii_code in [15]:
-                ImptoReten = collections.OrderedDict()
-                ImptoReten['TpoImp'] = IVA.tax_id.sii_code
-                ImptoReten['TasaImp'] = round(IVA.tax_id.amount,2)
-                ImptoReten['MontoImp'] = self.currency_id.round(IVA.amount)
+        if MntExe > 0:
+            MntExe = self.currency_id.round( MntExe )
+        if not self._es_boleta() or not taxInclude:
+            if IVA:
+                if not self._es_boleta():
+                    TasaIVA = round(IVA.tax_id.amount, 2)
+                MntIVA = self.currency_id.round(IVA.amount)
+            if no_product:
+                MntNeto = 0
+                if not self._es_boleta():
+                    TasaIVA = 0
+                MntIVA = 0
+        if IVA and IVA.tax_id.sii_code in [15]:
+            ImptoReten = collections.OrderedDict()
+            ImptoReten['TpoImp'] = IVA.tax_id.sii_code
+            ImptoReten['TasaImp'] = round(IVA.tax_id.amount,2)
+            ImptoReten['MontoImp'] = self.currency_id.round(IVA.amount)
 
         MntTotal = self.currency_id.round(self.amount_total)
         if no_product:
