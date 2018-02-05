@@ -1273,10 +1273,10 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 raise UserError("NO puede ser menor que 0")
             if not no_product:
                 lines['UnmdItem'] = line.uom_id.name[:4]
-                lines['PrcItem'] = self.currency_id.round( line.price_unit )
+                lines['PrcItem'] = round( line.price_unit, 6)
                 if currency_id:
                     lines['OtrMnda'] = collections.OrderedDict()
-                    lines['OtrMnda']['PrcOtrMon'] = currency_id.compute( line.price_unit, self.company_id.currency_id)
+                    lines['OtrMnda']['PrcOtrMon'] = round(currency_id.compute( line.price_unit, self.company_id.currency_id, round=False), 6)
                     lines['OtrMnda']['Moneda'] = self._acortar_str(self.company_id.currency_id.name, 3)
                     lines['OtrMnda']['FctConv'] = round(currency_id.rate, 4)
             if line.discount > 0:
