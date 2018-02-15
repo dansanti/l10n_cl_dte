@@ -575,23 +575,36 @@ class UploadXMLWizard(models.TransientModel):
 
         return [0,0, data]
 
+    def _create_tpo_doc(self, ref):
+        vals = {
+                'name': ref.get('RazonRef', '') + ' ' + str(ref['TpoDocRef'])
+            }
+        if str(ref['TpoDocRef']).isdigit():
+            vals.update({
+                    'sii_code': ref['TpoDocRef'],
+                })
+        else:
+            vals.update({
+                    'doc_code_prefix': ref['TpoDocRef']
+                    'sii_code': 801,
+                })
+        return self.env['sii.document_class'].create(vals)
+
     def _prepare_ref(self, ref):
-        try:
-            tpo = self.env['sii.document_class'].search([('sii_code', '=', ref['TpoDocRef'])])
-        except:
-            tpo = self.env['sii.document_class'].search([('sii_code', '=', 801)])
+        query = []
+        if str(ref['TpoDocRef']).isdigit():
+            query.append(('sii_code', '=', ref['TpoDocRef']))
+        else:
+            query.append(('doc_code_prefix', '=', ref['TpoDocRef']))
+        tpo = self.env['sii.document_class'].search(query)
         if not tpo:
-            raise UserError(_('No existe el tipo de documento'))
-        folio = ref['FolioRef']
-        fecha = ref['FchRef']
-        cod_ref = ref['CodRef'] if 'CodRef' in ref else None
-        motivo = ref['RazonRef'] if 'RazonRef' in ref else None
+            tpo = self._create_tpo_doc(ref)
         return [0,0,{
-            'origen' : folio,
+            'origen' : ref.get('FolioRef', None),
             'sii_referencia_TpoDocRef' : tpo.id,
-            'sii_referencia_CodRef' : cod_ref,
-            'motivo' : motivo,
-            'fecha_documento' : fecha,
+            'sii_referencia_CodRef' : ref.get('CodRef', False),
+            'motivo' : ref.get('RazonRef', False),
+            'fecha_documento' : ref.get('FchRef', False),
         }]
 
     def _prepare_invoice(self, dte, company_id, journal_document_class_id):
