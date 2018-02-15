@@ -1331,7 +1331,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
                 ref_line['NroLinRef'] = lin_ref
                 if not self._es_boleta():
                     if  ref.sii_referencia_TpoDocRef:
-                        ref_line['TpoDocRef'] = ref.sii_referencia_TpoDocRef.sii_code
+                        ref_line['TpoDocRef'] = self._acortar_str(ref.sii_referencia_TpoDocRef.doc_code_prefix, 3) if ref.sii_referencia_TpoDocRef.use_prefix else ref.sii_referencia_TpoDocRef.sii_code
                         ref_line['FolioRef'] = ref.origen
                     ref_line['FchRef'] = ref.fecha_documento or datetime.strftime(datetime.now(), '%Y-%m-%d')
                 if ref.sii_referencia_CodRef not in ['','none', False]:
