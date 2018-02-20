@@ -202,7 +202,7 @@ class ProcessMailsDocument(models.Model):
                 'option': 'acept'
             }
             val = self.env['sii.dte.upload_xml.wizard'].create(vals)
-            created.append(val.confirm(ret=True))
+            created = val.confirm(ret=True)
             r.state = 'acepted'
         xml_id = 'account.action_invoice_tree2'
         result = self.env.ref('%s' % (xml_id)).read()[0]
