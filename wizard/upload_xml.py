@@ -585,7 +585,7 @@ class UploadXMLWizard(models.TransientModel):
                 })
         else:
             vals.update({
-                    'doc_code_prefix': ref['TpoDocRef']
+                    'doc_code_prefix': ref['TpoDocRef'],
                     'sii_code': 801,
                 })
         return self.env['sii.document_class'].create(vals)
