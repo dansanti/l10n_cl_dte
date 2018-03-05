@@ -59,5 +59,5 @@ Chile: API and GUI to access Electronic Invoicing webservices.
     ],
     'installable': True,
     'auto_install': False,
-    'application': False,
+    'application': True,
 }
