@@ -1537,7 +1537,7 @@ www.sii.cl'''.format(folio, folio_inicial, folio_final)
         if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == '2':
             status = {'warning':{'title':_("Error code: 2"), 'message': _(resp['SII:RESPUESTA']['SII:RESP_HDR']['GLOSA'])}}
             return status
-        if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] == "EPR":
+        if resp['SII:RESPUESTA']['SII:RESP_HDR']['ESTADO'] in ["EPR", "DOK"]:
             self.sii_result = "Proceso"
             if resp['SII:RESPUESTA']['SII:RESP_BODY']['RECHAZADOS'] == "1":
                 self.sii_result = "Rechazado"
