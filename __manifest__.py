@@ -2,7 +2,7 @@
 {
     "name": """Chile - Web Services de Documentos Tributarios Electrónicos\
     """,
-    'version': '10.0.6.5.3',
+    'version': '0.6.5.5',
     'category': 'Localization/Chile',
     'sequence': 12,
     'author':  'Daniel Santibáñez Polanco, BMyA SA - Blanco Martín & Asociados, Odoo Chile',
@@ -26,7 +26,6 @@ Chile: API and GUI to access Electronic Invoicing webservices.
             'xmltodict',
             'dicttoxml',
             'pdf417gen',
-            'M2Crypto',
             'base64',
             'hashlib',
             'cchardet',
