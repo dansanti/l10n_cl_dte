@@ -19,6 +19,17 @@
               <t t-if="'journal_document_class_id' in o and o.journal_document_class_id">
                 <t t-set="document_class_id" t-value="o.journal_document_class_id.sii_document_class_id"/>
               </t>
+              <t t-set="partner_id" t-value="o.partner_id" />
+              <t t-set="commercial_partner_id" t-value="o.partner_id.commercial_partner_id" />
+              <t t-set="logo" t-value="company.logo" />
+              <t t-set="sii_document_number" t-value="o.sii_document_number" />
+              <t t-if="o.type in ['in_invoice', 'in_refund']">
+                <t t-set="partner_id" t-value="company.partner_id" />
+                <t t-set="commercial_partner_id" t-value="company.partner_id" />
+                <t t-set="company" t-value="o.partner_id" />
+                <t t-set="logo" t-value="o.partner_id.image" />
+                <t t-set="sii_document_number" t-value="o.reference" />
+              </t>
               <div class="header">
                 <div class="row">
                     <div class="col-xs-6">
@@ -29,32 +40,32 @@
                 </div>
                 <div class="row">
                     <div class="col-xs-5" style="width:420px !important; text-align:center;">
-                        <img t-if="company.logo" t-att-src="'data:image/png;base64,%s' % company.logo" style="max-height: 45px;"/>
+                        <img t-if="logo" t-att-src="'data:image/png;base64,%s' % logo" style="max-height: 45px;"/>
                         <h4 style="text-align:lef;text-transform:uppercase;font-weight:900;font-size:18px;color:black;">
-                            <span t-field="o.company_id.partner_id.name"/>
+                            <span t-field="company.name"/>
                         </h4>
                         <p style="text-align:center;font-size:14px;color:black; text-transform:uppercase;">
-                          <t t-if="'activity_description' in o.company_id and o.company_id.activity_description.name">
-                            <span t-field="o.company_id.activity_description.name" style="color:black; text-align:center;"/><br/>
+                          <t t-if="company.activity_description">
+                            <span t-field="company.activity_description.name" style="color:black; text-align:center;"/><br/>
                           </t>
                             <!-- domicilios -->
-                            <span t-field="o.company_id.partner_id.street"/>, <span t-field="o.company_id.partner_id.city_id.name"/>, <span t-field="o.company_id.partner_id.city"/><br/>
+                            <span t-field="company.street"/>, <span t-field="company.city_id.name"/>, <span t-field="company.city"/><br/>
                             <!-- domicilios -->
-                            <span> Teléfono: <span t-field="o.company_id.partner_id.phone"/> Fax: <span t-field="o.company_id.partner_id.fax"/></span><br/>
-                            <span>E-Mail: <span t-field="o.company_id.partner_id.email"/></span><br/>
-                            <span t-field="o.company_id.partner_id.website"/>
+                            <span> Teléfono: <span t-field="company.phone"/></span><br/>
+                            <span>E-Mail: <span t-field="company.email"/></span><br/>
+                            <span t-field="company.website"/>
                         </p>
                     </div>
                     <div class="col-xs-5">
                         <div style="position:relative;left:-25px;border: 3px solid red;text-align: center;font-size:20px;padding-bottom:0px !important; height:145px; width:360px;">
                           <h6 style="color:red;font-size:20px;padding-bottom:10px; padding-top:5px; font-family:Arial;">
-                              R.U.T.: <span t-field="o.company_id.partner_id.document_number"/>
+                              R.U.T.: <span t-field="company.document_number"/>
                           </h6>
                           <h6 name="document_class_id" t-if="document_class_id" style="line-height:23px;font-size:20px;color:red;text-align:center;text-transform:uppercase;padding-bottom:10px;font-family:Arial;">
                              <span t-field="document_class_id.name"/>
                           </h6>
-                          <h6 t-if="'sii_document_number' in o and o.sii_document_number" style="color: red;text-align: center;font-size:20px;padding-bottom:5px;font-family:Arial;">
-                              N° <span t-field="o.sii_document_number"/>
+                          <h6 t-if="sii_document_number" style="color: red;text-align: center;font-size:20px;padding-bottom:5px;font-family:Arial;">
+                              N° <span t-esc="sii_document_number"/>
                           </h6>
                           <br/>
                       </div>
@@ -75,25 +86,25 @@
                         <tbody>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Señor (es):</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.commercial_partner_id.name"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="commercial_partner_id.name"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Fecha:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><t t-if="'date_invoice' in o and o.date_invoice"><span t-field="o.date_invoice"/></t></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>RUT:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.commercial_partner_id.document_number"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="commercial_partner_id.document_number"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Comuna:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;"><span t-field="o.partner_id.city_id.name"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;"><span t-field="partner_id.city_id.name"/></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Domicilio:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.partner_id.street"/><span t-field="o.partner_id.street2"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="partner_id.street"/><span t-field="partner_id.street2"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Ciudad:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;"><span t-field="o.partner_id.city"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;"><span t-field="partner_id.city"/></td>
                           </tr>
                           <tr style="max-height:15px; font-size:12px !important;">
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Giro:</strong></td>
-                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="o.activity_description.name"/></td>
+                            <td style="border-top:0px !important;padding:0px !important;min-width:440px;max-width:440px;"><span t-field="commercial_parnter_id.activity_description.name"/></td>
                             <td style="border-top:0px !important;padding:0px !important;"><strong>Condición de Pago:</strong></td>
                             <td style="border-top:0px !important;padding:0px !important;"><span t-if="'payment_term_id' in o and o.payment_term_id" t-field="o.payment_term_id.name"/></td>
                           </tr>
@@ -195,7 +206,7 @@
                             <p style="text-align:center;color:red; font-size:8px;">
                               Timbre Electrónico SII
                               <br/>
-                              Resolución <t t-esc='company.dte_resolution_number'/> de <t t-esc='company.dte_resolution_date[:4]'/> Verifique documento: www.sii.cl
+                              Resolución <t t-esc='o.company_id.dte_resolution_number'/> de <t t-esc='o.company_id.dte_resolution_date[:4]'/> Verifique documento: www.sii.cl
                             </p>
                         </div>
                       </div>
