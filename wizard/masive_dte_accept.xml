@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="sii_masive_dte_process_wizard_form" model="ir.ui.view">
+            <field name="name">SII DTE masive Accept Wizard form</field>
+            <field name="model">sii.dte.masive.accept.wizard</field>
+            <field name="arch" type="xml">
+                <form string="SII DTE masive Accept Wizard">
+                    <group>
+                        <!--<field name="action" />-->
+                        <div>Se aceptarán todos los docuemtnos, se crearán todos los datos que se tengan que crear sin verificar y se enviará notificación de aceptación</div>
+                    </group>
+                    <footer>
+                        <button string="Confirm" name="confirm" type="object" class="oe_highlight" />
+                        or
+                        <button string="Cancel" class="oe_link" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <act_window id="action_mail_message_dte_accept"
+            multi="True"
+            key2="client_action_multi"
+            name="Aceptar DTEs recibidos"
+            res_model="sii.dte.masive.accept.wizard"
+            src_model="mail.message.dte.document"
+            view_mode="form"
+            target="new"
+            view_type="form" />
+</odoo>

@@ -11,13 +11,13 @@
             <field name="active" eval="True" />
         </record>
 
-        <record id="ir_cron_auto_acept_documents" model="ir.cron">
+        <record id="ir_cron_auto_accept_documents" model="ir.cron">
             <field name="name">Cron AutoAceptación Documentos</field>
             <field name="interval_number">1</field>
             <field name="interval_type">days</field>
             <field name="numbercall">-1</field>
             <field name="model">mail.message.dte.document</field>
-            <field name="function">auto_acept_documents</field>
+            <field name="function">auto_accept_documents</field>
             <field name="active" eval="True" />
             <field name="nextcall">02/10/2017 00:00:01 AM</field>
         </record>

@@ -87,7 +87,7 @@ class ProccessMail(models.Model):
                         'option': option,
                     }
                     val = self.env['sii.dte.upload_xml.wizard'].create(vals)
-                    created = val.confirm(ret=True)
+                    created.extend( val.confirm(ret=True) )
         xml_id = 'l10n_cl_dte.action_dte_process'
         result = self.env.ref('%s' % (xml_id)).read()[0]
         if created:
@@ -151,7 +151,7 @@ class ProcessMailsDocument(models.Model):
     state= fields.Selection(
         [
             ('draft','Recibido'),
-            ('acepted', 'Aceptado'),
+            ('accepted', 'Aceptado'),
             ('rejected', 'Rechazado'),
         ],
         default='draft',
@@ -168,13 +168,13 @@ class ProcessMailsDocument(models.Model):
     purchase_to_done = fields.Many2many(
         'purchase.order',
         string="Ordenes de Compra a validar",
-        domain=[('state', 'not in',['acepted', 'rejected'] )],
+        domain=[('state', 'not in',['accepted', 'rejected'] )],
     )
 
     _order = 'create_date DESC'
 
     @api.model
-    def auto_acept_documents(self):
+    def auto_accept_documents(self):
         self.env.cr.execute(
             """
             select
@@ -188,10 +188,10 @@ class ProcessMailsDocument(models.Model):
             """
         )
         for d in self.browse([line.get('id') for line in self.env.cr.dictfetchall()]):
-            d.acept_document()
+            d.accept_document()
 
     @api.multi
-    def acept_document(self):
+    def accept_document(self):
         created = []
         for r in self:
             vals = {
@@ -199,11 +199,11 @@ class ProcessMailsDocument(models.Model):
                 'filename': r.dte_id.name,
                 'pre_process': False,
                 'document_id': r.id,
-                'option': 'acept'
+                'option': 'accept'
             }
             val = self.env['sii.dte.upload_xml.wizard'].create(vals)
-            created = val.confirm(ret=True)
-            r.state = 'acepted'
+            created.extend(val.confirm(ret=True))
+            r.state = 'accepted'
         xml_id = 'account.action_invoice_tree2'
         result = self.env.ref('%s' % (xml_id)).read()[0]
         if  created:
@@ -217,13 +217,13 @@ class ProcessMailsDocument(models.Model):
         for r in self:
             r.state = 'rejected'
 
-        wiz_acept = self.env['sii.dte.validar.wizard'].create(
+        wiz_accept = self.env['sii.dte.validar.wizard'].create(
             {
                 'action': 'validate',
                 'option': 'reject',
             }
         )
-        wiz_acept.do_reject(self)
+        wiz_accept.do_reject(self)
 
 
 class ProcessMailsDocumentLines(models.Model):
