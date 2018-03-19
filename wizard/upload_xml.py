@@ -673,14 +673,14 @@ class UploadXMLWizard(models.TransientModel):
         except:
             name = self.filename.encode('UTF-8')
         image = False
-        barcodefile = BytesIO()
+        barcodefile = StringIO()
         ted_string = etree.tostring(documento.find("{http://www.sii.cl/SiiDte}TED"), method="c14n", pretty_print=False)
-        image = self.env['account.invoice'].pdf417bc(ted_string.decode().replace('xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ','').replace(' xmlns=""',''))
+        image = self.env['account.invoice'].pdf417bc(ted_string.replace('xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ','').replace(' xmlns=""',''))
         image.save(barcodefile,'PNG')
         data = barcodefile.getvalue()
         sii_barcode_img = base64.b64encode(data)
         invoice.update( {
-            'origin' : 'XML Envío: ' + name.decode(),
+            'origin' : 'XML Envío: ' + name,
             'date_invoice' : dte['Encabezado']['IdDoc']['FchEmis'],
             'partner_id' : partner_id,
             'company_id' : company_id.id,
